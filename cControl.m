@@ -130,7 +130,7 @@ classdef cControl < handle
             % generatre a new one
             oCont.pHistory.data(1:2) = [];
             
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mMakeUndo');
         end
         
         % % % Keyboard and Mouse Input processing % % %
@@ -152,7 +152,7 @@ classdef cControl < handle
                 new = max;
             end
             oCont.pTable.row = new;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mMouseWheel');
         end
         
         function mKeyPress(oCont, a, key)
@@ -201,10 +201,10 @@ classdef cControl < handle
             if exist('tmp') == 1
                 if isa(tmp, 'cControl')
                     oCont = tmp;
-                    oCont.mTableCellSelect;
+                    oCont.mTableCellSelect('Caller', 'mMenuCallback');
                 elseif isa(tmp, 'cCompute')
                     oCont.oComp = tmp;
-                    oCont.mTableCellSelect;
+                    oCont.mTableCellSelect('Caller', 'mMenuCallback');
                 else
                     uiwait(warndlg([char(fcn) 'is not cCompute or cControl class! revise code!']));
                 end
@@ -329,7 +329,7 @@ classdef cControl < handle
             clone = cControl('mode', oCont.pApplication);
             clone.oComp = oCont.oComp;
             clone.pTable.row = oCont.pTable.row;
-            clone.mTableCellSelect;
+            clone.mTableCellSelect('Caller', 'mCloneSoftware');
         end
         
         % % % GUI interaction % % %
@@ -339,33 +339,42 @@ classdef cControl < handle
             
             % execute function due to value change
             oCont.oComp(select.Indices(1)) = oCont.oComp(select.Indices(1)).mTableEdit(select);
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mTableCellEdit');
             
         end
         
         function mTableCellSelect(oCont, varargin)
             %% prepare
             if nargin==3
-                % this would be the case if the user clicks the table
-                select = varargin{2};
-                select = select.Indices;
-                if isempty(select)  % dirty, but i did not find another way (if table data gets updated -> cellselect callback -> arrrgg
-                    % terminates an unwanted call by the mUpdateTable methods line: oCont.pHandles.table.Data = tableData;
-                    return
+                if isa(varargin{2}, 'char')
+                    switch varargin{2}
+                        case ''
+                        otherwise
+                            doUpdateTable = true;
+                            select = [oCont.pTable.row oCont.pTable.column];
+                    end
+                elseif isa(varargin{1}, 'matlab.ui.control.Table')
+                    % this would be the case if the user clicks the table
+                    select = varargin{2};
+                    select = select.Indices;
+                    if isempty(select)  % dirty, but i did not find another way (if table data gets updated -> cellselect callback -> arrrgg
+                        % terminates an unwanted call by the mUpdateTable methods line: oCont.pHandles.table.Data = tableData;
+                        return
+                    end
+                    % if the cell is editable supress mUpdateTable
+                    if any(select(2)==find(oCont.pAcfg.table.columnEditable))
+                        doUpdateTable = false;
+                    else
+                        doUpdateTable = true;
+                    end
+                else
+                    msgbox('error in GUI update routine! Nr2');
                 end
-            elseif nargin==2
-                % this is the case for 
-                select = [oCont.pTable.row oCont.pTable.column];
-            elseif nargin==1
-                % this is the case if mTableCellSelect was called within the code 
-                select = [oCont.pTable.row oCont.pTable.column];
-            end
-            % if the cell is editable supress mUpdateTable
-            if any(select(2)==find(oCont.pAcfg.table.columnEditable))
-                doUpdateTable = false;
+                
             else
-                doUpdateTable = true;
+                msgbox('error in GUI update routine! Nr1');
             end
+            
             oCont.pTable.row = select(1);
             oCont.pTable.column = select(2);
             %-------------------------
@@ -464,7 +473,7 @@ classdef cControl < handle
             oCont.pHandles.zoomRect = imrect(oCont.pHandles.zoomAxis);
             oCont.pHandles.zoomFig.CloseRequestFcn = @oCont.mCloseZoomView;
             oCont.pHandles.zoomRect.addNewPositionCallback(@(oComp)oCont.oComp.mImageUpdate(oCont));
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mCreateZoomView');
         end
         
         function mCloseZoomView(oCont, varargin)
@@ -473,7 +482,7 @@ classdef cControl < handle
             rmfield(oCont.pHandles, 'zoomAxis');
             rmfield(oCont.pHandles, 'zoomDisplay');
             rmfield(oCont.pHandles, 'zoomRect');
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mCloseZoomView');
         end
         
         % % % Program Start and GUI creation % % %

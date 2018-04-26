@@ -597,7 +597,7 @@ classdef cCompute
             oComp.BoundData(oComp.pSelectedBound).current = dFT.fitInfo.current;
             oComp.BoundData(oComp.pSelectedBound).gof = dFT.fitInfo.gof;
             oCont.oComp(oCont.pTable.row) = oComp;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mUseFitToolData');
         end
         
         %% class methods

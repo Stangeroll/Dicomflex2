@@ -419,7 +419,7 @@ classdef cComputeT1Mapper<cCompute
             %-------------------------------%
             oCont.pAcfg = pAcfg;
             oCont.pHandles.imgDisplay.AlphaData = 1;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mKeyRelease');
         end
         
         function mImgAxisButtonDown(oComp, oCont, hit)
@@ -523,7 +523,7 @@ classdef cComputeT1Mapper<cCompute
             end
             %-------------------------------%
             oCont.oComp = oComp;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mmImportNikitaBound');
         end
         
         % % % Image Management % % %

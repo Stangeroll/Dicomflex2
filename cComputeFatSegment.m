@@ -306,7 +306,7 @@ classdef cComputeFatSegment<cCompute
             
             
             oCont.pHandles.imgDisplay.AlphaData = 1;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mKeyRelease');
         end
         
         function mImgAxisButtonDown(oComp, oCont, hit)
@@ -371,7 +371,7 @@ classdef cComputeFatSegment<cCompute
             oCont.pHandles.figure.WindowButtonMotionFcn = '';
             oCont.pHandles.figure.WindowButtonUpFcn = '';
             oCont.pHandles.imgDisplay.AlphaData = 1;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mGraphAxisButtonUp');
         end
         
         % % % Experimental % % %
@@ -1272,7 +1272,7 @@ classdef cComputeFatSegment<cCompute
             end
             
             oCont.oComp = oComp;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mImportNikitaBound');
         end
         
         % % % Image Organisation % % %
@@ -1492,7 +1492,7 @@ classdef cComputeFatSegment<cCompute
             end
             
             oComp(oCont.pTable.row) = oCompTmp;
-            oCont.mTableCellSelect;
+            oCont.mTableCellSelect('Caller', 'mFindThreshLvl');
             
             %
             %             oCont.pAcfg.autoThresh = ~oCont.pAcfg.autoThresh;
