@@ -272,7 +272,7 @@ classdef cCompute
         end
         
         %% Boundary management
-        function oCont =  mUseDraw(oComp, oCont)
+        function oCont =  mMergeContours(oComp, oCont)
             if strcmp(oCont.pActiveKey, '')
                 msgbox(['Use one of the following keys to select a Boundary to be changed first:'...
                     cell2mat(oCont.pAcfg.contour.names)]);

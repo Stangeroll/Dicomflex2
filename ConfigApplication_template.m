@@ -8,7 +8,7 @@ table = []; % struct containing table apperance, header names and their data sou
 contour = [];   % non mandatory struct containing contour/boundary names, colors and their associated key´s for selection
 menu = [];  % struct array with all menu button pathes and their callbacks
 cfg.cfg_application_version = '0.6.0';
-cfg.applicationName = 'FatSegment';   % this value is used for switch case selection in this .m file!!!!!
+cfg.applicationName = 'FatQuant';   % this value is used for switch case selection in this .m file!!!!!
 
 %% mandatory app values
 switch cfg.applicationName
@@ -61,6 +61,60 @@ switch cfg.applicationName
         cfg.saveDatFcn = {'oCont.oComp.mSaveStuff(oCont)'};    % used after saving the mat file for application specific saving of data
         cfg.closeRequestFcn = 'oCont.oComp.mCloseReq(oCont)'; % executed if Dicomflex is closed by X
     
+    case 'FatQuant'
+        %% file handling
+            %% data directory
+            cfg.datFileSearchString = {['*' cfg.applicationName '*data*.mat'] '*data*.mat'};    % search stings for session files stored on the HDD. First array element is the pattern the files are commonly saved. If the first cell array element does not bring search results Dicomflex uses the next element for search
+            cfg.lastLoadPath = 'C:\';   % this value is written in the cfg_application_app.json when using the application
+            %% image search and names: 
+            % for each slice location (each table row) may exist one or more images. Each image type has an entry in imgNames, imgSearchName and imgSearchDir
+            cfg.imgNames = {'Real', 'Imaginary', 'Magnitude'};   % this name is used for programatic organization only (application specific)
+            cfg.standardImgType = 'Magnitude';  % this value must exist within the imgNames array. It points to the image used for .... certain fundamental dicomflex operations (search for standardImgType in the code....)
+            
+            cfg.imgSearchDir{1} = {'*11P*'};    % corresponding to each imgName a entry must exist. Used to search for possible folders hosting images to be searched with imgSearchName entries. If more than one result occures, a selection can be made by the user
+            cfg.imgSearchDir{2} = {'*11P*'};    % corresponding to each imgName a entry must exist. Used to search for possible folders hosting images to be searched with imgSearchName entries. If more than one result occures, a selection can be made by the user
+            cfg.imgSearchDir{3} = {'*11P*'};    % corresponding to each imgName a entry must exist. Used to search for possible folders hosting images to be searched with imgSearchName entries. If more than one result occures, a selection can be made by the user
+            cfg.imgSearchName{1} = {'*11P_Re*.dcm'}; % corresponding to each imgName a entry must exist to search for images (must be unambiguous/explicit)
+            cfg.imgSearchName{2} = {'*11P_Im*.dcm'}; % corresponding to each imgName a entry must exist to search for images (must be unambiguous/explicit)
+            cfg.imgSearchName{3} = {'*11P *.dcm'}; % corresponding to each imgName a entry must exist to search for images (must be unambiguous/explicit)
+        %% Gui customisation
+            %% imgAxis apperance
+            cfg.imgAxis.visible = 'on';
+            cfg.imgAxis.height = 0.75;  % value in %/100 of total GUI size
+            %% graphAxis apperance
+            cfg.graphAxis.visible = 'on';
+            cfg.graphAxis.height = 0.25;    % value in %/100 of total GUI size
+            cfg.graphAxis.xBorderGap = [30 20]; % gap between plot axis and panel around plot 
+            cfg.graphAxis.yBorderGap = [30 2]; % gap between plot axis and panel around plot
+            %% table apperance
+            % for each element of ColumnName a corresponding associatedFieldNames entry, columnFormat, ... must exist to be called during the GUI update routine to fill the table
+            table.columnName = {'Pos', 'ResultValue', 'IgnoreSlice'}; % header line names of the table
+            table.associatedFieldNames = {'pSliceLocation', 'mGetResultValue', 'pVarious.IgnoreSlice'};    % cCompute properties or methods to be used to get the values filling the table
+            table.columnFormat = {'numeric', 'char', 'logical'};   % datatype coming from the associatedFieldNames call
+            table.columnEditable = [false, false, true];  % if the column is editable, the cControl calls the mTableEdit method of cCompute-app. So fill it with code :-)...
+            table.columnWidth = {100, 240, 40};   % in pxl
+            table.visible = 'on';   
+            table.height = 0.5; % value in %/100 of total GUI size
+            %% textBox apperance
+            cfg.textBox.visible = 'on';
+            cfg.textBox.height = 1-table.height;    % value in %/100 of total GUI size
+            %% colors
+            % colors are not used for framework purposes .... ignore it if you like of use them for e.g. boundaries,.....
+            cfg.color1 = [1 0 0];
+            cfg.color2 = [0 0 1];
+            cfg.color3 = [0 1 0];
+            cfg.color4 = [0 0.45 0.74];
+            cfg.color5 = [0.85 0.33 0.1];
+            cfg.color6 = [0.93 0.69 0.13];
+            cfg.color7 = [0.49 0.18 0.56];
+            cfg.color8 = [0.47 0.67 0.19];
+            cfg.color9 = [0.3 0.75 0.93];
+        %% function calls
+        cfg.cComputeFcn = 'cComputeFatQuant';   % cCompute-app class: used when loading a dataset or creating a new one
+        cfg.imgFcn = 'cImageDcm'; % define cImage class: used when loading the imgs
+        cfg.saveDatFcn = {'oCont.oComp.mSaveStuff(oCont)'};    % used after saving the mat file for application specific saving of data
+        cfg.closeRequestFcn = 'oCont.oComp.mCloseReq(oCont)'; % executed if Dicomflex is closed by X
+        
     case 'T1Mapper'
         %% file handling
         % data directory
@@ -165,6 +219,52 @@ end
 %% app specific values
 menu = struct('path', {}, 'callback', ''); % empty menu
 switch cfg.applicationName
+    case '_template_'
+        cfg.imageDisplayMode = 'Raw Images'; % 
+        %% external windows
+        cfg.showZoomFig = 1;
+        %% Key associations
+        key.something = 'a';
+        %% Gui Menu entries
+            % image display
+        menu(end+1).path = {'Image Display' 'Raw Images'};
+        menu(end).callback = '@oCont.mImageDisplayMode';
+        %% Fit parameters
+
+        %% Contour settings
+        
+        %% usability configuration
+        
+    case 'FatQuant'
+        cfg.imageDisplayMode = 'Magnitude'; %
+        %% external windows
+        cfg.showBoundInfo = 1;
+        cfg.showPxlInfo = 1;
+        cfg.showZoomFig = 1;
+        %% Key associations
+        key.deleteContour = 'escape';
+        key.showFit = 'f';
+        key.fitData = 'space';
+        key.nextImage = 'add';
+        key.previousImage = 'subtract';
+        %% Gui Menu entries
+        % image display
+        menu(end+1).path = {'Image Display' 'Magnitude'};
+        menu(end).callback = '@oCont.mImageDisplayMode';
+        
+        menu(end+1).path = {'Functions' 'Copy Boundaries'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mCopyBound(oCont))';
+        
+        menu(end+1).path = {'Functions' 'Paste Boundaries'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mPasteBound(oCont))';
+        %% Fit parameters
+        
+        %% Contour settings
+        contour.names = {'ROI_1' 'ROI_2' 'ROI_3' 'ROI_4' 'ROI_5' 'ROI_6' 'ROI_7' 'ROI_8' 'ROI_9'};
+        contour.colors = {'blue' 'red' 'green' [0 0.45 0.74] [0.85 0.33 0.1] [0.93 0.69 0.13] [0.49 0.18 0.56] [0.47 0.67 0.19] [0.3 0.75 0.93]} ;
+        contour.keyAssociation = {'1' '2' '3' '4' '5' '6' '7' '8' '9'};
+        %% usability configuration
+        
     case 'T1Mapper'
         cfg.imageDisplayMode = 'Raw Images'; % 
         cfg.imageNr = 1; % the currently displayed image
@@ -225,7 +325,7 @@ switch cfg.applicationName
 
         %% usability configuration
         
-    case {'FatSegment'}
+    case {'FatSegment' 'FatQuant'}
         cfg.segProps.name = 'OuterBound_RS+NikitaFat'; % 'OuterBound_RS'; 'NikitaFat160322Segmenting.m'; 'OuterBound_RS+NikitaFat';
         cfg.segProps.magThreshold = 8;  % Threshold magnitude is currently used only for RS_outerBound
         cfg.imageDisplayMode = 'Water only';

@@ -488,7 +488,7 @@ classdef cComputeT1Mapper<cCompute
         function mImgAxisButtonUp(oComp, a, b, oCont)
             oCont.pHandles.figure.WindowButtonMotionFcn = '';
             oCont.pHandles.figure.WindowButtonUpFcn = '';
-            oCont = oCont.oComp.mUseDraw(oCont);
+            oCont = oCont.oComp.mMergeContours(oCont);
         end
         
         function oCont = mGenBoundInfoFig(oComp, oCont)

@@ -6,7 +6,7 @@ classdef cImage
         path = '';
         nr = '';
         imgType = '';
-        data = int16([]);
+        data = [];
         pVersion_cImage = '1';
     end
     
@@ -23,6 +23,7 @@ classdef cImage
         end
         
         function img = scale2(img, scaleMinMax)
+            % scales a BW or RGB cImage.data to the Range specified by scale, a two element array.
             Min = scaleMinMax(1);
             Max = scaleMinMax(2);
             im = double(img.data);

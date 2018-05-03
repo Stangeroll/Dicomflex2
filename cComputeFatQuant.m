@@ -1,10 +1,13 @@
-classdef cCompute_template<cCompute %-%-%
+classdef cComputeFatQuant<cCompute %-%-%
     properties
         %% these properties must exist
-        pVersion_cCompute_template = '1.0'; %-%-%
+        pVersion_cComputeFatQuant = '1.0'; %-%-%
         
         %% these properties are just for application specific use
-        %-%-%
+        oBoundaries = boundaryFit.empty;
+        pPxlData = struct('pxlNr', [], 'parameters', {}, 'rmse', [], 'rsquare', [], 'badFitReason', {}, 'fitOk', {}, 'values', {[]}, 'cFitObj', rsFitObj);
+        pSelectedBound = '';
+        pSliceDone = 0;    % 0 means not semented, 1 means segemented but not fitted, 2 means segmented and fitted
     end
     
     methods(Static)
@@ -249,7 +252,7 @@ classdef cCompute_template<cCompute %-%-%
             % release motion callback when mouse button is released
             oCont.pHandles.figure.WindowButtonMotionFcn = '';
             oCont.pHandles.figure.WindowButtonUpFcn = '';
-            oCont = oCont.oComp.mMergeContours(oCont);
+            oCont = oCont.oComp.mUseDraw(oCont);
         end
         
         % % % Application Management % % %
@@ -258,14 +261,14 @@ classdef cCompute_template<cCompute %-%-%
         end
         
         % % % Object Management % % %
-        function oComp = mUpdate_cCompute_template(oComp, data, saveDate) %-%-%
+        function oComp = mUpdate_cComputeFatQuant(oComp, data, saveDate) %-%-%
             % here each slice gets implemented in the current cCompute
             % structure. -> oComp will be an array of cCompute objects with
             % the size of data.
             for i = 1:numel(data)
-                oComp(i) = cCompute_template;  %-%-% % object creation line
+                oComp(i) = cComputeFatQuant;  %-%-% % object creation line
                 oCompTmp = data(i);  % simple struct variable
-                switch oCompTmp.pVersion_cCompute_template %-%-%
+                switch oCompTmp.pVersion_cComputeFatQuant %-%-%
                     case '1.0'
                         for f = fieldnames(oComp(i))'
                             f = f{1};
@@ -281,7 +284,7 @@ classdef cCompute_template<cCompute %-%-%
             
         end
         
-        function oComp = cCompute_template(cCompArray) %-%-%
+        function oComp = cComputeFatQuant(cCompArray) %-%-%
             
         end
     end

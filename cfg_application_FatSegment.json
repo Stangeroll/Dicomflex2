@@ -7,7 +7,7 @@
 		"*FatPig_data*.mat",
 		"*_data*.mat"
 	],
-	"lastLoadPath": "C:\\Users\\Roland\\Dropbox\\UniKlinik\\ExampleDatasets\\Mentzel_Olga_5_170914",
+	"lastLoadPath": "C:\\Users\\StangeR\\MATLAB\\FAT\\Stegert_Elvira_2_180206",
 	"imgNames": [
 		"InPhase",
 		"OutPhase"
@@ -235,6 +235,6 @@
 			"3"
 		],
 		"showMirrorAxis": 0,
-		"showFemurBox": 1
+		"showFemurBox": 0
 	}
 }
