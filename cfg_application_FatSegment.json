@@ -7,7 +7,7 @@
 		"*FatPig_data*.mat",
 		"*_data*.mat"
 	],
-	"lastLoadPath": "C:\\Users\\StangeR\\MATLAB\\FAT\\Stegert_Elvira_2_180206",
+	"lastLoadPath": "C:\\Users\\StangeR\\MATLAB\\FAT\\ModeratePatients\\Reussner_Kerstin_4_150409",
 	"imgNames": [
 		"InPhase",
 		"OutPhase"
@@ -63,7 +63,7 @@
 	],
 	"closeRequestFcn": "oCont.oComp.mCloseReq(oCont)",
 	"segProps": {
-		"name": "OuterBound_RS+NikitaFat",
+		"name": "RS_BodyBounds",
 		"magThreshold": 8
 	},
 	"imageDisplayMode": "Water only",
@@ -119,6 +119,13 @@
 		{
 			"path": [
 				"FatFunctions",
+				"Visceral Bound from Inner Bound"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mVisceralFromInnerBound(oCont))"
+		},
+		{
+			"path": [
+				"FatFunctions",
 				"Find FatTheshold"
 			],
 			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mFindThreshLvl(oCont))"
@@ -136,6 +143,13 @@
 				"Paste Boundaries"
 			],
 			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mPasteBound(oCont))"
+		},
+		{
+			"path": [
+				"Functions",
+				"Contour Tracking ON\/OFF"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mContourTrackingONOFF(oCont))"
 		},
 		{
 			"path": [
@@ -168,6 +182,38 @@
 				"Save Box Results"
 			],
 			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSaveBoxResults(oCont))"
+		},
+		{
+			"path": [
+				"Experimental",
+				"Hemi FAT",
+				"Show Line"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mShowHemiLine(oCont))"
+		},
+		{
+			"path": [
+				"Experimental",
+				"Hemi FAT",
+				"Set Line"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSetHemiLine(oCont))"
+		},
+		{
+			"path": [
+				"Experimental",
+				"Hemi FAT",
+				"Remove Line"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mDelHemiLine(oCont))"
+		},
+		{
+			"path": [
+				"Experimental",
+				"Hemi FAT",
+				"Save Hemi Results"
+			],
+			"callback": "@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSaveHemiResults(oCont))"
 		}
 	],
 	"table": {
@@ -216,7 +262,8 @@
 	},
 	"key": {
 		"deleteContour": "escape",
-		"showVat": "v"
+		"showVat": "v",
+		"contourTracking": "x"
 	},
 	"contour": {
 		"names": [
@@ -234,7 +281,11 @@
 			"2",
 			"3"
 		],
-		"showMirrorAxis": 0,
-		"showFemurBox": 0
+		"showFemurBox": 0,
+		"showHemiLine": 0,
+		"contourTracking": {
+			"enable": 1,
+			"size": 4
+		}
 	}
 }

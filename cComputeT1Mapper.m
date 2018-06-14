@@ -52,6 +52,7 @@ classdef cComputeT1Mapper<cCompute
                     imgDisplay = imgDisplay(pAcfg.imageNr);
                 case 'T1 Map'
                     oCont.pVarious.T1Range = [100 550];
+                    %oCont.pVarious.T1Range = [100 3000];
                     imgDisplay = oComp.mGetT1Img;
                     imgBackground = oComp.mGetStandardImg;
                     
@@ -69,6 +70,7 @@ classdef cComputeT1Mapper<cCompute
                         Window = imgDisplay.data<oCont.pVarious.T1Range(1) | imgDisplay.data>oCont.pVarious.T1Range(2);
                         
                         HideMask = ~FOkmask | R2mask | T1Zero | Window | ~bodyMask;
+                        %HideMask = T1Zero| Window;
                         oCont.pVarious.T1MapAvailable = true;
                     catch
                         HideMask = T1Zero;

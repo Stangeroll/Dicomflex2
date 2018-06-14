@@ -27,7 +27,7 @@ classdef cControl < handle
     end
     
     methods(Static)
-        function h = mDrawContour(imgAxis, contCoord, contColor)
+        function h = mDrawContour(imgAxis, contCoord, contColor, varargin)
             % draws a set of contour coordinates (contCoord) into an image
             % (imgAxis) with the colors (contColor)
             % imgAxis       - handle to an axis
@@ -35,6 +35,9 @@ classdef cControl < handle
             % as x, y coordinates
             % contColor     - cell array containing a color specifier per
             % array element
+            % varargin is string value pairs:
+            % 'drawMode' - {'line' 'dot'}
+            %
             h = []; % pre allocated, in case all contCoords are empty and h will not be assigned
             
             if isvalid(imgAxis)
@@ -59,6 +62,24 @@ classdef cControl < handle
                         h{i} = line(c(:,2), c(:,1), 'Color', contColor{i}, 'LineWidth', 2);
                         h{i}.ButtonDownFcn = imgAxis.ButtonDownFcn;
                         h{i}.HitTest = 'on';
+                        
+                        %modify apperance
+                        for j = 1:2:numel(varargin)
+                            switch varargin{j}
+                                case 'drawMode'
+                                    switch varargin{j+1}{i}
+                                        case 'line'
+                                            h{i}.LineStyle = '-';
+                                            h{i}.Marker = 'none';
+                                            h{i}.MarkerSize = 3;
+                                        case 'dot'
+                                            h{i}.LineStyle = 'none';
+                                            h{i}.Marker = '.';
+                                            h{i}.MarkerSize = 3;
+                                    end
+                            end
+                        end
+                        
                     end
                 end
             end
@@ -131,15 +152,18 @@ classdef cControl < handle
             oCont.pHistory.data(1:2) = [];
             
             oCont.mTableCellSelect('Caller', 'mMakeUndo');
+            oCont = oCont.mLogging(['oCont.mMakeUndo']);
         end
         
         % % % Keyboard and Mouse Input processing % % %
         function mGraphAxisButtonDown(oCont, a, hit, varargin)
             oCont.oComp(oCont.pTable.row).mGraphAxisButtonDown(oCont, hit); % execute function associated in cCompute class
+            oCont = oCont.mLogging(['oCont.mGraphAxisButtonDown - ' num2str(hit.IntersectionPoint)]);
         end
         
         function mImgAxisButtonDown(oCont, a, hit, varargin)
             oCont.oComp(oCont.pTable.row).mImgAxisButtonDown(oCont, hit); % execute function associated in cCompute class
+            oCont = oCont.mLogging(['oCont.mImgAxisButtonDown - ' num2str(hit.IntersectionPoint)]);
         end
         
         function mMouseWheel(oCont, a, b, varargin)
@@ -151,8 +175,8 @@ classdef cControl < handle
             elseif new>max
                 new = max;
             end
-            oCont.pTable.row = new;
-            oCont.mTableCellSelect('Caller', 'mMouseWheel');
+            %oCont.pTable.row = new;
+            oCont.mTableCellSelect('Caller', 'mMouseWheel', new);
         end
         
         function mKeyPress(oCont, a, key)
@@ -174,7 +198,8 @@ classdef cControl < handle
                 otherwise   % here keys are processed in the cCompute class
                     oCont.oComp(oCont.pTable.row) = oCont.oComp(oCont.pTable.row).mKeyPress(oCont, key); % execute function associated in cCompute class
             end
-            oCont.pActiveKey
+            disp(oCont.pActiveKey);
+            oCont = oCont.mLogging(['oCont.mKeyPress - ' key.Key]);
         end
         
         function mKeyRelease(oCont, a, key)
@@ -188,11 +213,13 @@ classdef cControl < handle
                 otherwise   % here keys are processed in the cCompute class
                     oCont.oComp(oCont.pTable.row).mKeyRelease(oCont, key); % execute function associated in cCompute class
             end
-            oCont.pActiveKey
+            disp(oCont.pActiveKey);
+            oCont = oCont.mLogging(['oCont.mKeyRelease - ' key.Key]);
         end
         
         % % % ProgramMenue interaction % % %
         function mMenuCallback(oCont, fcn, varargin)
+            oCont = oCont.mLogging(['oCont.mMenuCallback - start ' char(fcn)])
             try
                 tmp = feval(fcn); % execute the function coming from the menu button callback stored in applicationConfig
             catch
@@ -209,6 +236,7 @@ classdef cControl < handle
                     uiwait(warndlg([char(fcn) 'is not cCompute or cControl class! revise code!']));
                 end
             end
+            oCont = oCont.mLogging(['oCont.mMenuCallback - end ' char(fcn)]);
         end
         
         function mImageDisplayMode(oCont, b, varargin)
@@ -219,9 +247,11 @@ classdef cControl < handle
             menuSelection = oCont.pAcfg.menu{find(ismember(callbackEntries, b.Label))};
             oCont.pAcfg.imageDisplayMode = menuSelection.path{end};
             oCont = oCont.oComp.mImageUpdate(oCont);
+            oCont = oCont.mLogging(['oCont.mImageDisplayMode - ' menuSelection.path{end}]);
         end
         
         function mSaveData(oCont, varargin)
+            oCont = oCont.mLogging(['oCont.mSaveData - start']);
             wb = waitbar(0.1, 'Data.mat file is beein saved.');
             wb.Name = 'saving....';
             path = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix '_data.mat']);
@@ -237,6 +267,7 @@ classdef cControl < handle
             wb.Name = 'Done';
             pause(0.35);
             close(wb);
+            oCont = oCont.mLogging(['oCont.mSaveData - done']);
             
         end
         
@@ -249,6 +280,8 @@ classdef cControl < handle
             if patDir==0
                 return
             end
+            % set logging 
+            oCont = oCont.mLogging(['oCont.mLoadData - start - folder ' patDir]);
             % clear prior use of cControl class
             oCont.oComp = [];
             oCont.pTable.row = 1;
@@ -301,6 +334,9 @@ classdef cControl < handle
             
             % fill table
             oCont.mUpdateTable;
+            
+            % set logging
+            oCont = oCont.mLogging(['oCont.mLoadData - end - folder ' patDir]);
         end
        
         function mImport(oCont, varargin)
@@ -310,6 +346,7 @@ classdef cControl < handle
 %                     'ListSize', [200 150], 'OKString', 'Select Mode', 'CancelString', 'Abord');
             oCont.mLoadData('Import', 'ISAT-DataFile');
             
+            oCont = oCont.mLogging(['import of xxxx was done']);
             
 %             switch oCont.pApplication
 %                 case 'FatSegment'
@@ -329,6 +366,7 @@ classdef cControl < handle
             clone = cControl('mode', oCont.pApplication);
             clone.oComp = oCont.oComp;
             clone.pTable.row = oCont.pTable.row;
+            oCont = oCont.mLogging(['oCont.mCloneSoftware']);
             clone.mTableCellSelect('Caller', 'mCloneSoftware');
         end
         
@@ -339,19 +377,24 @@ classdef cControl < handle
             
             % execute function due to value change
             oCont.oComp(select.Indices(1)) = oCont.oComp(select.Indices(1)).mTableEdit(select);
+            oCont = oCont.mLogging(['oCont.mTableCellEdit - row ' num2str(select.Indices(1)) ' and column ' num2str(select.Indices(2)) ' edited']);
             oCont.mTableCellSelect('Caller', 'mTableCellEdit');
             
         end
         
         function mTableCellSelect(oCont, varargin)
             %% prepare
-            if nargin==3
+            if nargin>2
                 if isa(varargin{2}, 'char')
                     switch varargin{2}
-                        case ''
+                        case 'mMouseWheel'
+                            % this would be the case for scrawling through the slices
+                            select(1) = varargin{3};
+                            select(2) = oCont.pTable.column;
+                            manualSelected = true;
+                            oCont = oCont.mLogging(['oCont.mTableCellSelect - row ' num2str(select(1)) ' and column ' num2str(select(2)) ' selected (by mouse wheel)']);
                         otherwise
-                            doUpdateTable = true;
-                            select = [oCont.pTable.row oCont.pTable.column];
+                            manualSelected = false;
                     end
                 elseif isa(varargin{1}, 'matlab.ui.control.Table')
                     % this would be the case if the user clicks the table
@@ -361,12 +404,10 @@ classdef cControl < handle
                         % terminates an unwanted call by the mUpdateTable methods line: oCont.pHandles.table.Data = tableData;
                         return
                     end
+                    
                     % if the cell is editable supress mUpdateTable
-                    if any(select(2)==find(oCont.pAcfg.table.columnEditable))
-                        doUpdateTable = false;
-                    else
-                        doUpdateTable = true;
-                    end
+                    manualSelected = true;
+                    oCont = oCont.mLogging(['oCont.mTableCellSelect - row ' num2str(select(1)) ' and column ' num2str(select(2)) ' selected (by mouse click)']);
                 else
                     msgbox('error in GUI update routine! Nr2');
                 end
@@ -374,9 +415,9 @@ classdef cControl < handle
             else
                 msgbox('error in GUI update routine! Nr1');
             end
+            doUpdateTable = ~manualSelected;
             
-            oCont.pTable.row = select(1);
-            oCont.pTable.column = select(2);
+            
             %-------------------------
             t_tot = tic;
             %% undo History
@@ -384,9 +425,9 @@ classdef cControl < handle
             oCont.pHistory.data;
             % make history storage for undo
             histData = oCont.mGenerateHistData;
-            if isequal(histData, oCont.pHistory.data{1})
-                % -> no change happened
-            else
+            
+            if numel(oCont.pHistory.data)==1 || ~isequal(histData.oComp, oCont.pHistory.data{1}.oComp)
+                
                 histSize = 15;
                 %[a b c] = comp_struct(histData, oCont.pHistory.data{1})
                 % make hist data the correct size (init)
@@ -397,10 +438,20 @@ classdef cControl < handle
                 shiftSet = oCont.pHistory.data(1:histSize-1);
                 oCont.pHistory.data(1) = {histData}; % here the new stuff
                 oCont.pHistory.data(2:histSize) = shiftSet; % here the old stuff
+                
+            else
+                disp('no HistChange')
+                % -> no change happened
             end
             
             t_undo = toc(t_undo);
             disp(['UndoStorage: ' num2str(t_undo) ' sec']);
+            %% mSliceSelected
+            if manualSelected
+                oCont = oCont.oComp.mSliceSelected(oCont, oCont.pTable.row, select(1));
+                oCont.pTable.row = select(1);
+                oCont.pTable.column = select(2);
+            end
             %% mImageUpdate
             t_Img = tic;
             oCont = oCont.oComp.mImageUpdate(oCont);
@@ -474,6 +525,7 @@ classdef cControl < handle
             oCont.pHandles.zoomFig.CloseRequestFcn = @oCont.mCloseZoomView;
             oCont.pHandles.zoomRect.addNewPositionCallback(@(oComp)oCont.oComp.mImageUpdate(oCont));
             oCont.mTableCellSelect('Caller', 'mCreateZoomView');
+            oCont = oCont.mLogging(['oCont.mCreateZoomView']);
         end
         
         function mCloseZoomView(oCont, varargin)
@@ -483,6 +535,7 @@ classdef cControl < handle
             rmfield(oCont.pHandles, 'zoomDisplay');
             rmfield(oCont.pHandles, 'zoomRect');
             oCont.mTableCellSelect('Caller', 'mCloseZoomView');
+            oCont = oCont.mLogging(['oCont.mCloseZoomView']);
         end
         
         % % % Program Start and GUI creation % % %
@@ -684,7 +737,18 @@ classdef cControl < handle
             
         end
         
+        function oCont = mLogging(oCont, action, varargin)
+            if isfield(oCont.pVarious, 'TimeLogging')
+                oCont.pVarious.TimeLogging.Stamp(end+1) = now;
+                oCont.pVarious.TimeLogging.Action(end+1) = {action};
+            else
+                oCont.pVarious.TimeLogging.Stamp(1) = now;
+                oCont.pVarious.TimeLogging.Action(1) = {action};
+            end
+        end
+        
         function oCont = cControl(varargin)
+            oCont = oCont.mLogging('start cControl');
             %% get program directory
             % determine .m or .exe directory
             if isdeployed
@@ -724,6 +788,7 @@ classdef cControl < handle
             oCont.pAcfg = loadjson(oCont.pAcfgPath);
             
             oCont.pApplication = oCont.pAcfg.applicationName;
+            oCont = oCont.mLogging([oCont.pAcfg.applicationName ' mode selected']);
             %% check for write permission of cfg files
             [a, tmp1] = fileattrib(oCont.pFcfgPath);
             [a, tmp2] = fileattrib(oCont.pAcfgPath);

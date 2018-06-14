@@ -7,7 +7,7 @@
 		"*T1RelaxFitMRoi_*data.mat",
 		"*data*.mat"
 	],
-	"lastLoadPath": "C:\\Users\\Roland\\Dropbox\\UniKlinik\\Dicomflex\\GitRepository\\20180503\\T1_PhantomData",
+	"lastLoadPath": "W:\\RAD\\RAD-Physik\\Papers\\02 - Hot\\FF T1\\Roland\\Figures",
 	"imgNames": [
 		"Ti"
 	],
@@ -51,7 +51,7 @@
 		"oCont.oComp.mSaveXls(oCont)"
 	],
 	"closeRequestFcn": "oCont.oComp.mCloseReq(oCont)",
-	"imageDisplayMode": "Raw Images",
+	"imageDisplayMode": "T1 Map",
 	"imageNr": 1,
 	"showBoundInfo": 1,
 	"showPxlInfo": 1,

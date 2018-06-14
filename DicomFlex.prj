@@ -1,9 +1,9 @@
 <deployment-project plugin="plugin.ezdeploy" plugin-version="1.0">
-  <configuration build-checksum="210699331" file="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex\DicomFlex.prj" location="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex" name="DicomFlex" preferred-package-location="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex\build\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
+  <configuration build-checksum="455212385" file="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex\DicomFlex.prj" location="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex" name="DicomFlex" preferred-package-location="C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex\build\for_redistribution" preferred-package-type="package.type.exe" target="target.ezdeploy.standalone" target-name="Application Compiler">
     <param.appname>DicomFlex</param.appname>
     <param.icon />
     <param.icons />
-    <param.version>1.1</param.version>
+    <param.version>1.2</param.version>
     <param.authnamewatermark>Roland Stange</param.authnamewatermark>
     <param.email>Roland.Stange@medizin.Uni-Leipzig.de</param.email>
     <param.company>University Hospital Leipzig</param.company>
@@ -84,35 +84,40 @@
       <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\FitTool\cfg_FitTool.json</file>
     </fileset.package>
     <fileset.depfun>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\boundary.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\boundaryFit.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\img.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\imgDcm.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\imgFat.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\isat.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\tabDat.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\tabDatFatSegmentIOphase.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\ISAT\tabDatT1RelaxFitMRoi.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\DconvV2.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\getProgrammPath.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\img2bwThresholding.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\jsonopt.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\loadjson.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\mergestruct.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\savejson.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\struct2jdata.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\jsonlab\varargin2struct.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\kmeans.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\localMaximum.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\makeLinePoints.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\NikitaFat160322Segmenting.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\NikitaFat161213Segmenting.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\pointDist.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\region_seg.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\regiongrowing.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\RSouterBound.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\setStructArrayField.m</file>
-      <file>C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\SubFun\subdir.m</file>
+      <file>${PROJECT_ROOT}\subfun\boundary.m</file>
+      <file>${PROJECT_ROOT}\subfun\boundaryFit.m</file>
+      <file>${PROJECT_ROOT}\subfun\checkBoundaryAppropriateness.m</file>
+      <file>${PROJECT_ROOT}\subfun\DconvV2.m</file>
+      <file>${PROJECT_ROOT}\subfun\FitTool.m</file>
+      <file>${PROJECT_ROOT}\subfun\getProgrammPath.m</file>
+      <file>${PROJECT_ROOT}\subfun\img.m</file>
+      <file>${PROJECT_ROOT}\subfun\img2bwThresholding.m</file>
+      <file>${PROJECT_ROOT}\subfun\imgDcm.m</file>
+      <file>${PROJECT_ROOT}\subfun\imgFat.m</file>
+      <file>${PROJECT_ROOT}\subfun\isat.m</file>
+      <file>${PROJECT_ROOT}\subfun\jsonopt.m</file>
+      <file>${PROJECT_ROOT}\subfun\kmeans.m</file>
+      <file>${PROJECT_ROOT}\subfun\loadjson.m</file>
+      <file>${PROJECT_ROOT}\subfun\localMaximum.m</file>
+      <file>${PROJECT_ROOT}\subfun\makeLinePoints.m</file>
+      <file>${PROJECT_ROOT}\subfun\mergestruct.m</file>
+      <file>${PROJECT_ROOT}\subfun\NikitaFat160322Segmenting.m</file>
+      <file>${PROJECT_ROOT}\subfun\NikitaFat161213Segmenting.m</file>
+      <file>${PROJECT_ROOT}\subfun\pointDist.m</file>
+      <file>${PROJECT_ROOT}\subfun\region_seg.m</file>
+      <file>${PROJECT_ROOT}\subfun\regiongrowing.m</file>
+      <file>${PROJECT_ROOT}\subfun\RS_BodyBounds.m</file>
+      <file>${PROJECT_ROOT}\subfun\rsFitObj.m</file>
+      <file>${PROJECT_ROOT}\subfun\RSinnerBound.m</file>
+      <file>${PROJECT_ROOT}\subfun\RSouterBound.m</file>
+      <file>${PROJECT_ROOT}\subfun\savejson.m</file>
+      <file>${PROJECT_ROOT}\subfun\setStructArrayField.m</file>
+      <file>${PROJECT_ROOT}\subfun\struct2jdata.m</file>
+      <file>${PROJECT_ROOT}\subfun\subdir.m</file>
+      <file>${PROJECT_ROOT}\subfun\tabDat.m</file>
+      <file>${PROJECT_ROOT}\subfun\tabDatFatSegmentIOphase.m</file>
+      <file>${PROJECT_ROOT}\subfun\tabDatT1RelaxFitMRoi.m</file>
+      <file>${PROJECT_ROOT}\subfun\varargin2struct.m</file>
     </fileset.depfun>
     <build-deliverables>
       <file location="${PROJECT_ROOT}\build\for_testing" name="splash.png" optional="false">C:\Users\StangeR\Dropbox\UniKlinik\MatlabSource\DicomFlex\build\for_testing\splash.png</file>

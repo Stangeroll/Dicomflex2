@@ -8,7 +8,7 @@ table = []; % struct containing table apperance, header names and their data sou
 contour = [];   % non mandatory struct containing contour/boundary names, colors and their associated key´s for selection
 menu = [];  % struct array with all menu button pathes and their callbacks
 cfg.cfg_application_version = '0.6.0';
-cfg.applicationName = 'FatQuant';   % this value is used for switch case selection in this .m file!!!!!
+cfg.applicationName = 'FatSegment';   % this value is used for switch case selection in this .m file!!!!!
 
 %% mandatory app values
 switch cfg.applicationName
@@ -186,7 +186,7 @@ switch cfg.applicationName
         %% graphAxis apperance
         cfg.graphAxis.visible = 'on';
         cfg.graphAxis.height = 0.25;
-        cfg.graphAxis.xBorderGap = [30 15]; % gap between plot axis and panel around plot 
+        cfg.graphAxis.xBorderGap = [30 15]; % gap between plot axis and panel around plot
         cfg.graphAxis.yBorderGap = [50 2]; % gap between plot axis and panel around plot
         %% table apperance
         table.columnName = {'Pos', 'UseIt', 'SAT [cm^3]', 'VAT [cm^3]', 'WK', 'LM'};
@@ -325,8 +325,8 @@ switch cfg.applicationName
 
         %% usability configuration
         
-    case {'FatSegment' 'FatQuant'}
-        cfg.segProps.name = 'OuterBound_RS+NikitaFat'; % 'OuterBound_RS'; 'NikitaFat160322Segmenting.m'; 'OuterBound_RS+NikitaFat';
+    case {'FatSegment'}
+        cfg.segProps.name = 'RS_BodyBounds'; % 'OuterBound_RS'; 'NikitaFat160322Segmenting.m'; 'OuterBound_RS+NikitaFat';
         cfg.segProps.magThreshold = 8;  % Threshold magnitude is currently used only for RS_outerBound
         cfg.imageDisplayMode = 'Water only';
         cfg.sliceSpacingInterpolationDistance = 10.5; % used to interpoate data for a systematic homogene result with similar slice distances in mm (max precision = 0.1!!!!)
@@ -334,11 +334,15 @@ switch cfg.applicationName
         contour.names = {'outerBound' 'innerBound' 'visceralBound'};
         contour.colors = {'yellow' 'blue' 'red'};
         contour.keyAssociation = {'1' '2' '3'};
-        contour.showMirrorAxis = 0;
         contour.showFemurBox = 0;
+        contour.showHemiLine = 0;
+        contour.contourTracking.enable = 1;
+        contour.contourTracking.size = 4;
+        
         %% Key associations
         key.deleteContour = 'escape';
         key.showVat = 'v';
+        key.contourTracking = 'x';
         %% Gui Menu entries
             % image display
         menu(end+1).path = {'Image Display' 'Image Mode' 'In Phase only'};
@@ -356,12 +360,15 @@ switch cfg.applicationName
 %         menu(end+1).path = {'Image Display' 'Image Mode' 'All Four'};
 %         menu(end).callback = '@oCont.mImageDisplayMode';
 
-            % functions menu
+        % functions menu
         menu(end+1).path = {'FatFunctions' 'Auto Segment Image'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mAutoSegmentSingle(oCont))';
         
         menu(end+1).path = {'FatFunctions' 'Auto Segment All Images'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mAutoSegmentAll(oCont))';
+        
+        menu(end+1).path = {'FatFunctions' 'Visceral Bound from Inner Bound'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mVisceralFromInnerBound(oCont))';
         
         menu(end+1).path = {'FatFunctions' 'Find FatTheshold'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mFindThreshLvl(oCont))';
@@ -372,21 +379,10 @@ switch cfg.applicationName
         menu(end+1).path = {'Functions' 'Paste Boundaries'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mPasteBound(oCont))';
         
-%         menu(end+1).path = {'Experimental' 'Import Nikita Boundaries'};
-%         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mImportNikitaBound(oCont))';
+        menu(end+1).path = {'Functions' 'Contour Tracking ON/OFF'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mContourTrackingONOFF(oCont))';
         
-%         menu(end+1).path = {'Experimental' 'Mirror Axis' 'Show Mirror Axis'};
-%         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mShowMirrorAxis(oCont))';
-%         
-%         menu(end+1).path = {'Experimental' 'Mirror Axis' 'Set Mirror Axis'};
-%         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSetMirrorAxis(oCont))';
-%         
-%         menu(end+1).path = {'Experimental' 'Mirror Axis' 'Remove Mirror Axis'};
-%         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mDelMirrorAxis(oCont))';
-%         
-%         menu(end+1).path = {'Experimental' 'Mirror Axis' 'Save Mirrored XLS'};
-%         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSaveMirroredXls(oCont))';
-        
+        % FemurBox
         menu(end+1).path = {'Experimental' 'Femur Box' 'Show Box'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mShowFemurBox(oCont))';
         
@@ -398,6 +394,20 @@ switch cfg.applicationName
         
         menu(end+1).path = {'Experimental' 'Femur Box' 'Save Box Results'};
         menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSaveBoxResults(oCont))';
+        
+        % HemiFat
+        menu(end+1).path = {'Experimental' 'Hemi FAT' 'Show Line'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mShowHemiLine(oCont))';
+        
+        menu(end+1).path = {'Experimental' 'Hemi FAT' 'Set Line'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSetHemiLine(oCont))';
+        
+        menu(end+1).path = {'Experimental' 'Hemi FAT' 'Remove Line'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mDelHemiLine(oCont))';
+        
+        menu(end+1).path = {'Experimental' 'Hemi FAT' 'Save Hemi Results'};
+        menu(end).callback = '@(varargin)oCont.mMenuCallback(@(oComp)oCont.oComp.mSaveHemiResults(oCont))';
+        
         %% usability configuration
         cfg.tableSelAutoSegment = false;
 end

@@ -1,0 +1,14 @@
+1.0
+-> 1.1
+- optimized thresholding for img2bwThresholding.m used for RSouterbound -> slighliy different SAT Volume...
+- removed some "UseSlice" buggs
+- imporved T1Mapper Gui
+
+-> 1.2
+- FatSegment: implemented RS_BodyBounds.m as autosegmentation function for all boundaries
+- introduced saving of time stamps of Dicomflex framework tasks (load data, slice select,....)
+- FatSegment: reimplanted hemiFat similar to femurbox
+- FatSegment: XLS files will save the summary Fat values from Landmarks 'FK' to 'ZF'
+- FatSegment: contourTracking on/off implemented (when drawing with the mouse, it searches in the proxim area for the strongest contour)
+- FatSegment: 'x' key will switch between contourTracking on/off
+

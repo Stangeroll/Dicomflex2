@@ -93,6 +93,9 @@ classdef cComputeFatSegment<cCompute
             imgAxis = oCont.pHandles.imgAxis;
             %-------------------------------%
             %% plot segmentation
+            try 
+                disp(['RS_BodyBounds used fit method: ' num2str(oComp.pVarious.AutoSegment_ind)]);
+            end
             contCoord = {};
             colors = {};
             for i=1:numel(oComp.oBoundaries)
@@ -103,13 +106,12 @@ classdef cComputeFatSegment<cCompute
             % plot contours
             oCont.pHandles.contour = oCont.mDrawContour(imgAxis, contCoord, colors);
             %% plot line for miror axis
-            if pAcfg.contour.showMirrorAxis
-                coord = [oCont.oComp.pVarious];
-                if numel(coord)>1
-                    msgbox('to many mirro axis found in all data! check at 107.');
-                elseif numel(coord)==1
-                    
-                    oCont.mDrawContour(imgAxis, {{[coord{1}.mirrorAxisY{1} coord{1}.mirrorAxisX{1}]}}, {'green'});
+            if pAcfg.contour.showHemiLine
+                try
+                coord = oCont.pVarious.hemiLine.pos;
+                oCont.mDrawContour(imgAxis, {fliplr(coord)}, {'white'});
+                catch
+                    oComp.mShowHemiLine(oCont);
                 end
             end
             %% plot rect
@@ -129,6 +131,10 @@ classdef cComputeFatSegment<cCompute
                     uiwait(msgbox('could not draw box'));
                     oComp.mShowFemurBox(oCont);
                 end
+            end
+            %% show VAT?
+            if any(ismember(oCont.pActiveKey, 'v'))
+                oComp.mVatOverlay(oCont);
             end
             %% TopLeft text in Image
             pos = [3, 6];
@@ -296,6 +302,8 @@ classdef cComputeFatSegment<cCompute
 
                 case pAcfg.key.showVat  % show vat
                     oComp.mVatOverlay(oCont);
+                case pAcfg.key.contourTracking
+                    pAcfg.contour.contourTracking.enable = ~pAcfg.contour.contourTracking.enable;
             end
             %-------------------------------%
             oCont.pAcfg = pAcfg;
@@ -329,6 +337,19 @@ classdef cComputeFatSegment<cCompute
         
         function mImgAxisButtonMotion(oComp, a, b, oCont)
             newC = [oCont.pHandles.imgAxis.CurrentPoint(1,2) oCont.pHandles.imgAxis.CurrentPoint(1,1)];
+            newC = round(newC);
+            if oCont.pAcfg.contour.contourTracking.enable
+                img = oComp.mGetImgOfType('OutPhase').data;
+                mask = zeros(size(img));
+                mask(newC(1), newC(2)) = 1;
+                %trackImg = double(max(max(img))-img);
+                trackImg = imgradient(img);
+                trackSize = oCont.pAcfg.contour.contourTracking.size;
+                mask = trackImg.*imgaussfilt(mask, trackSize, 'FilterSize', trackSize*8+1);
+                [v ind] = max(mask(:));
+                [x y]=ind2sub(size(img), ind);
+                newC = [x y];
+            end
             oCont.pLineCoord = [oCont.pLineCoord; newC];
             oCont.pHandles.draw.XData = oCont.pLineCoord(:,2);
             oCont.pHandles.draw.YData = oCont.pLineCoord(:,1);
@@ -375,624 +396,87 @@ classdef cComputeFatSegment<cCompute
         end
         
         % % % Experimental % % %
-        % % Mirror Axis % %
-            function oComp = mShowMirrorAxis(oComp, oCont)
-            uiwait(msgbox('please reprogram code! mShowMirrorAxis is not up to date!!!'));
-%             oCont.pAcfg.contour.showMirrorAxis = ~oCont.pAcfg.contour.showMirrorAxis;
-%             if oCont.pAcfg.contour.showMirrorAxis == 0
-%                 uiwait(msgbox('Mirror axis not visible'));
-%             elseif oCont.pAcfg.contour.showMirrorAxis == 1
-%                 uiwait(msgbox('Mirror axis now visible'));
-%             end
-            end
-        
-            function oComp = mSetMirrorAxis(oComp, oCont)
-            uiwait(msgbox('please reprogram code! setMirrorAxis is not up to date!!!'));
-%             oComp = setStructArrayField(oComp, 'pVarious.mirrorAxisX', {});
-%             oComp = setStructArrayField(oComp, 'pVarious.mirrorAxisY', {});
-%             
-%             datInd = oCont.pTable.row;
-%             oComp = oCont.oComp(datInd);
-%             [x y] = getline(oCont.pHandles.imgAxis); % replace by "imline" if to be improved
-%             oComp.pVarious.mirrorAxisX = {x};
-%             oComp.pVarious.mirrorAxisY = {y};
-%             oComp(datInd) = oComp;
-%             oCont.mTableCellSelect;
-            end
-                
-            function oComp = mDelMirrorAxis(oComp, oCont)
-            uiwait(msgbox('please reprogram code! delMirrorAxis is not up to date!!!'));
-%             oComp = setStructArrayField(oComp, 'pVarious', {});
-%             
-%             datInd = oCont.pTable.row;
-%             oComp = oCont.oComp(datInd);
-%             [x y] = getline(oCont.pHandles.imgAxis); % replace by "imline" if to be improved
-%             oComp.pVarious.mirrorAxisX = {x};
-%             oComp.pVarious.mirrorAxisY = {y};
-%             oComp(datInd) = oComp;
-%             oCont.mTableCellSelect;
-            end
-        
-            function oCont = mSaveMirroredXls(oComp, oCont)
-            uiwait(msgbox('please reprogram code! saveMirroredXls is not up to date!!!'));
-%             wb = waitbar(0, 'saving XLS Hemi results');
-%             wb.Name = 'saving....';
-%             % find mirror axis
-%             coord = [oComp.pVarious];
-%             if numel(coord)>1
-%                 msgbox('to many axes found in all data! check at saveMirroredXls.');
-%             elseif numel(coord)==1
-%                 x1 = coord{1}.mirrorAxisX{1}(1);
-%                 x2 = coord{1}.mirrorAxisX{1}(2);
-%                 y1 = coord{1}.mirrorAxisY{1}(1);
-%                 y2 = coord{1}.mirrorAxisY{1}(2);
-%                 
-%                 %% start saving xls
-%                 
-%                 %% collect infos
-%                 dicomInfo = oComp(1).mGetStandardImg.dicomInfo;
-%                 try info.comment = dicomInfo.StudyComments; end
-%                 try info.description = dicomInfo.RequestedProcedureDescription; end
-%                 try info.physicianName = dicomInfo.ReferringPhysicianName.FamilyName; end
-%                 try info.institution = dicomInfo.InstitutionName; end
-%                 try info.stationName = dicomInfo.StationName; end
-%                 try info.manufacturer = dicomInfo.Manufacturer; end
-%                 try info.manufacturerModelName = dicomInfo.ManufacturerModelName; end
-%                 
-%                 try info.patientName = [dicomInfo.PatientName.FamilyName '_' dicomInfo.PatientName.GivenName];
-%                 catch
-%                     try info.patientName = dicomInfo.PatientName.FamilyName;
-%                     catch
-%                         info.patientName = 'NoName';
-%                     end
-%                 end
-%                 try info.patientWeight = num2str(dicomInfo.PatientWeight); end
-%                 try info.patientAge = dicomInfo.PatientAge; end
-%                 try info.patientSex = dicomInfo.PatientSex; end
-%                 try info.patientBirthDat = dicomInfo.PatientBirthDate; end
-%                 try info.patientIoCont = dicomInfo.PatientID; end
-%                 
-%                 try info.creationDate = datestr(datenum(dicomInfo.InstanceCreationDate, 'yyyymmdd'), 'dd.mm.yyyy'); end
-%                 
-%                 % remove empty entries
-%                 emptyInd = structfun(@isempty, info);
-%                 infoFields = fieldnames(info);
-%                 for i = 1:numel(emptyInd)
-%                     if emptyInd(i)
-%                         info = rmfield(info, infoFields(i));
-%                     end
-%                 end
-%                 
-%                 waitbar(0.3, wb);
-% %% create struct with oComp Rechts°!
-%                 img = oComp(1).mGetStandardImg;
-%                 imgSize = size(img.data);
-%                     %% preparation
-%                 xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'mirroredRECHTS_data.xlsx']);
-%                 
-%                     %% get line masks
-%                 % get points at upper and lower edge of image according to y=mx+t
-%                 m = (y2-y1)/(x2-x1);
-%                 t = y1-m*x1;
-%                 y11 = 1;
-%                 x11 = (y11-t)/m;
-%                 y22 = imgSize(2);
-%                 x22 = (y22-t)/m;
-%                 
-%                 [x y] = makeLinePoints(x11, y11, x22, y22);
-%                 lineMask = zeros(imgSize);
-%                 lineMask = oComp.mGetBoundMask(lineMask, [y' x']);
-%                 
-%                 rightMask = lineMask;
-%                 rightMask(1, x11:end) = 1;
-%                 rightMask(end, x22:end) = 1;
-%                 rightMask(:, end) = 1;
-%                 rightMask = imfill(rightMask,'holes');
-%                 
-%                 leftMask = lineMask;
-%                 leftMask(1, 1:x11) = 1;
-%                 leftMask(end, 1:x22) = 1;
-%                 leftMask(:, 1) = 1;
-%                 leftMask = imfill(leftMask,'holes');
-%                 
-%                     %% read values from oComp to s struct left side
-%                 for i = 1:numel(oComp)
-%                     oComp = oComp(i);
-%                     %% modify Boundaries for left side only
-%                     if oComp.pSliceDone
-%                     mask = leftMask;
-%                     try
-%                         oBoundInd = oComp.oBoundaries.getBoundInd('outerBound');
-%                         oBound = oComp.oBoundaries(oBoundInd);
-%                         oBoundMask = oComp.mGetBoundMask(img.data, oBound.coord);
-%                         oBoundMask = oBoundMask&mask;
-%                         tmp = bwboundaries(oBoundMask);
-%                         oBound.coord = tmp{1};
-%                     catch
-%                         oBound = [];
-%                     end
-%                     
-%                     try
-%                         iBoundInd = oComp.oBoundaries.getBoundInd('innerBound');
-%                         iBound = oComp.oBoundaries(iBoundInd);
-%                         iBoundMask = oComp.mGetBoundMask(img.data, iBound.coord);
-%                         iBoundMask = iBoundMask&mask;
-%                         tmp = bwboundaries(iBoundMask);
-%                         iBound.coord = tmp{1};
-%                     catch
-%                         iBound = [];
-%                     end
-%                     
-%                     try
-%                         vBoundInd = oComp.oBoundaries.getBoundInd('visceralBound');
-%                         vBound = oComp.oBoundaries(vBoundInd);
-%                         vBoundMask = oComp.mGetBoundMask(img.data, vBound.coord);
-%                         vBoundMask = vBoundMask&mask;
-%                         tmp = bwboundaries(vBoundMask);
-%                         vBound.coord = tmp{1};
-%                     catch
-%                         vBound = [];
-%                     end
-%                     
-%                     
-%                     
-%                     oComp.oBoundaries = [oBound iBound vBound];
-%                     
-%                     end
-%                     
-%                     s.voxVol(i) = oComp.oImgs(1).getVoxelVolume;
-%                     s.fatThresh(i) = oComp.pFatThresh;
-%                     try 
-%                         oBoundCoord = oComp.oBoundaries(oComp.oBoundaries.getBoundInd('outerBound')); 
-%                     catch
-%                         oBoundCoord = []; 
-%                     end
-%                     try 
-%                         oBoundMask = oComp.mGetBoundMask(oComp.mWaterImg.data, oBoundcoord.coord); 
-%                     catch
-%                         oBoundMask = [];
-%                     end
-%                     tmp = regionprops(oBoundMask , 'Area', 'Perimeter');
-%                     if isempty(tmp)
-%                         tmp(1).Area = 0;
-%                         tmp(1).Perimeter = 0;
-%                     end
-%                     s.bodyArea(i) = tmp.Area;
-%                     s.bodyPerimeter(i) = tmp.Perimeter;
-%                     
-%                     s.SatArea(i) = oComp.volumeSAT/oComp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
-%                     s.VatArea(i) = oComp.volumeVAT/oComp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
-%                     s.SatVol(i) = oComp.volumeSAT;
-%                     s.VatVol(i) = oComp.volumeVAT;
-%                     s.Loc1(i) = {oComp.pLoc1};
-%                     s.Loc2(i) = {oComp.pLoc2};
-%                     s.sliceLoc(i) = str2num(oComp.pSliceLocation);
-%                     s.sliceNr(i) = i;
-%                 end
-%                 % postprocessing
-%                 s.Loc1(ismember(s.Loc1, 'none')) = {''};
-%                 s.Loc2(ismember(s.Loc2, 'none')) = {''};
-%                 
-%                 sFlip = structfun(@(x) x', s, 'Uniformoutput', 0);
-%                 
-%                     %% write to xls sheet (use all available data)
-%                 writetable(struct2table(info), xlsPath, 'Sheet', 'infos');
-%                 writetable(struct2table(sFlip), xlsPath, 'Sheet', 'allFatData');
-%                 
-%                     %% write to xls sheet (xls file like <nikita 2016)
-%                 if ~isnan(oCont.pAcfg.sliceSpacingInterpolationDistance) && any(abs(diff(s.sliceLoc) - oCont.pAcfg.sliceSpacingInterpolationDistance) > 0.5)
-%                     % prepare data: interpolate to equidistant slice loc
-%                     x = s.sliceLoc;
-%                     sliceLocOld = x;
-%                     window = oCont.pAcfg.sliceSpacingInterpolationDistance;
-%                     xn = [x(1):window:x(end)];
-%                     sliceLocNew = xn;
-%                     % find correct slice width (oContescription available (oContrawIO)) for volume calculation
-%                     sliceWidth = diff(sliceLocNew);
-%                     sW1 = sliceWidth./2; sW1(end+1) = 0;
-%                     sW2 = sliceWidth./2; sW2 = [0 sW2];
-%                     sliceWidth = sW1+sW2;
-%                     % now special treatment for boundary images (1 and end)
-%                     sliceWidth(1) = sliceWidth(1)+str2num(oCont.oComp(1).oImgs(1).sliceThickness)/2;
-%                     sliceWidth(end) = sliceWidth(end)+str2num(oCont.oComp(end).oImgs(end).sliceThickness)/2;
-%                     % slice Width done!
-%                     
-%                     %_Calc VatVol
-%                     y = s.VatArea;  % mm^2
-%                     [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
-%                     ynVatArea = interp1(x2, y2, sliceLocNew);
-%                     VatVol = ynVatArea.*sliceWidth*0.001;
-%                     
-%                     %_Calc SatVol
-%                     y = s.SatArea;  % mm^2
-%                     [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
-%                     ynSatArea = interp1(x2, y2, sliceLocNew);
-%                     SatVol = ynSatArea.*sliceWidth*0.001;
-%                     
-%                     %_Set WKs
-%                     LocsInd = find(~ismember(s.Loc1,''));
-%                     LocsVal = s.Loc1(LocsInd);
-%                     LocsPosOrig = s.sliceLoc(LocsInd);
-%                     Loc1 = cell(1, numel(sliceLocNew)); Loc1(:) = {''};
-%                     for i = 1:numel(LocsPosOrig)
-%                         [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
-%                         Loc1(ind) = LocsVal(i);
-%                     end
-%                     
-%                     %_Set Landmarks
-%                     LocsInd = find(~ismember(s.Loc2,''));
-%                     LocsVal = s.Loc2(LocsInd);
-%                     LocsPosOrig = s.sliceLoc(LocsInd);
-%                     Loc2 = cell(1, numel(sliceLocNew)); Loc2(:) = {''};
-%                     for i = 1:numel(LocsPosOrig)
-%                         [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
-%                         Loc2(ind) = LocsVal(i);
-%                     end
-%                     
-%                     %_Set sliceNr
-%                     sliceNr = 1:numel(sliceLocNew);
-%                     
-%                     %_Plot Interpolation Reults
-%                     figure();
-%                     plot(diff(x),'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
-%                     hold on
-%                     plot(diff(x2),'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
-%                     plot(diff(xn),'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
-%                     drawnow;
-%                     a = gca;
-%                     a.XLabel.String = 'sliceLocation';
-%                     a.YLabel.String = 'VatArea';
-%                     legend('show');
-%                     
-%                     figure();
-%                     plot(x, y, 'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
-%                     hold on
-%                     plot(x2,y2,'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
-%                     plot(xn,ynSatArea,'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
-%                     drawnow;
-%                     a = gca;
-%                     a.XLabel.String = 'sliceLocation';
-%                     a.YLabel.String = 'VatArea';
-%                     legend('show');
-%                     
-%                     
-%                     
-%                     
-%                     waitfor(msgbox('Slice locations are not equally distributed -> interpolation was done as shown in figure!'));
-%                     
-%                     
-%                 else
-%                     sliceLocNew = s.sliceLoc;
-%                     SatVol = s.SatVol;
-%                     VatVol = s.VatVol;
-%                     sliceNr = s.sliceNr;
-%                     Loc1 = s.Loc1;
-%                     Loc2 = s.Loc2;
-%                 end
-%                 
-%                 
-%                 Pos = 1;
-%                 xlswrite(xlsPath, {info.patientName} , 'FAT', 'A1');
-%                 xlswrite(xlsPath, {info.creationDate} , 'FAT', 'A2');
-%                 xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', 'A3');
-%                 xlswrite(xlsPath, sliceNr', 'FAT', 'A4');
-%                 xlswrite(xlsPath, sliceLocNew', 'FAT', 'B4');
-%                 xlswrite(xlsPath, [0 diff(sliceLocNew)]', 'FAT', 'C4');
-%                 xlswrite(xlsPath, round(SatVol)', 'FAT', 'D4');
-%                 xlswrite(xlsPath, round(VatVol)', 'FAT', 'E4');
-%                 xlswrite(xlsPath, Loc1', 'FAT', 'F4');
-%                 xlswrite(xlsPath, Loc2', 'FAT', 'G4');
-%                 Pos = 3+numel(VatVol)+1;
-%                 xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', ['A' num2str(Pos)]);
-%                 Pos = Pos+2;
-%                 xlswrite(xlsPath, {'Summe'}, 'FAT', ['A' num2str(Pos)]);
-%                 xlswrite(xlsPath, round(sum(SatVol)), 'FAT', ['D' num2str(Pos)]);
-%                 xlswrite(xlsPath, round(sum(VatVol)), 'FAT', ['E' num2str(Pos)]);
-%                 
-%                 waitbar(0.6, wb);
-% %% create struct with oComp Links°!
-%                 img = oComp(1).mGetStandardImg;
-%                 imgSize = size(img.data);
-%                     %% preparation
-%                 xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'mirroredLINKS_data.xlsx']);
-% %                 %[file, path] = uiputfile(xlsPath);
-% %                 if path==0
-% %                     return
-% %                 end
-% %                 xlsPath = fullfile(path,file);
-%                 
-%                     %% get line masks
-%                 % get points at upper and lower edge of image according to y=mx+t
-%                 m = (y2-y1)/(x2-x1);
-%                 t = y1-m*x1;
-%                 y11 = 1;
-%                 x11 = (y11-t)/m;
-%                 y22 = imgSize(2);
-%                 x22 = (y22-t)/m;
-%                 
-%                 [x y] = makeLinePoints(x11, y11, x22, y22);
-%                 lineMask = zeros(imgSize);
-%                 lineMask = oComp.mGetBoundMask(lineMask, [y' x']);
-%                 
-%                 rightMask = lineMask;
-%                 rightMask(1, x11:end) = 1;
-%                 rightMask(end, x22:end) = 1;
-%                 rightMask(:, end) = 1;
-%                 rightMask = imfill(rightMask,'holes');
-%                 
-%                 leftMask = lineMask;
-%                 leftMask(1, 1:x11) = 1;
-%                 leftMask(end, 1:x22) = 1;
-%                 leftMask(:, 1) = 1;
-%                 leftMask = imfill(leftMask,'holes');
-%                 
-%                     %% read values from oComp to s struct right side
-%                 for i = 1:numel(oComp)
-%                     oComp = oComp(i);
-%                     %% modify Boundaries for left side only
-%                     if oComp.pSliceDone
-%                     mask = rightMask;
-%                     try
-%                         oBoundInd = oComp.oBoundaries.getBoundInd('outerBound');
-%                         oBound = oComp.oBoundaries(oBoundInd);
-%                         oBoundMask = oComp.mGetBoundMask(img.data, oBound.coord);
-%                         oBoundMask = oBoundMask&mask;
-%                         tmp = bwboundaries(oBoundMask);
-%                         oBound.coord = tmp{1};
-%                     catch
-%                         oBound = [];
-%                     end
-%                     
-%                     try
-%                         iBoundInd = oComp.oBoundaries.getBoundInd('innerBound');
-%                         iBound = oComp.oBoundaries(iBoundInd);
-%                         iBoundMask = oComp.mGetBoundMask(img.data, iBound.coord);
-%                         iBoundMask = iBoundMask&mask;
-%                         tmp = bwboundaries(iBoundMask);
-%                         iBound.coord = tmp{1};
-%                     catch
-%                         iBound = [];
-%                     end
-%                     
-%                     try
-%                         vBoundInd = oComp.oBoundaries.getBoundInd('visceralBound');
-%                         vBound = oComp.oBoundaries(vBoundInd);
-%                         vBoundMask = oComp.mGetBoundMask(img.data, vBound.coord);
-%                         vBoundMask = vBoundMask&mask;
-%                         tmp = bwboundaries(vBoundMask);
-%                         vBound.coord = tmp{1};
-%                     catch
-%                         vBound = [];
-%                     end
-%                         
-%                     
-%                     
-%                     oComp.oBoundaries = [oBound iBound vBound];
-%                     %oComp.volumeVAT
-% % %                     
-% %                     figure();
-% %                     imshow(oBoundMask);
-%                     
-%                     
-%                     
-%                     end
-%                     
-%                     s.voxVol(i) = oComp.oImgs(1).getVoxelVolume;
-%                     s.fatThresh(i) = oComp.pFatThresh;
-%                     try 
-%                         oBoundCoord = oComp.oBoundaries(oComp.oBoundaries.getBoundInd('outerBound')); 
-%                     catch
-%                         oBoundCoord = []; 
-%                     end
-%                     try 
-%                         oBoundMask = oComp.mGetBoundMask(oComp.mWaterImg.data, oBoundcoord.coord); 
-%                     catch
-%                         oBoundMask = [];
-%                     end
-%                     tmp = regionprops(oBoundMask , 'Area', 'Perimeter');
-%                     if isempty(tmp)
-%                         tmp(1).Area = 0;
-%                         tmp(1).Perimeter = 0;
-%                     end
-%                     s.bodyArea(i) = tmp.Area;
-%                     s.bodyPerimeter(i) = tmp.Perimeter;
-%                     
-%                     s.SatArea(i) = oComp.volumeSAT/oComp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
-%                     s.VatArea(i) = oComp.volumeVAT/oComp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
-%                     s.SatVol(i) = oComp.volumeSAT;
-%                     s.VatVol(i) = oComp.volumeVAT;
-%                     s.Loc1(i) = {oComp.pLoc1};
-%                     s.Loc2(i) = {oComp.pLoc2};
-%                     s.sliceLoc(i) = str2num(oComp.pSliceLocation);
-%                     s.sliceNr(i) = i;
-%                 end
-%                 % postprocessing
-%                 s.Loc1(ismember(s.Loc1, 'none')) = {''};
-%                 s.Loc2(ismember(s.Loc2, 'none')) = {''};
-%                 
-%                 sFlip = structfun(@(x) x', s, 'Uniformoutput', 0);
-%                 
-%                     %% write to xls sheet (use all available data)
-%                 writetable(struct2table(info), xlsPath, 'Sheet', 'infos');
-%                 writetable(struct2table(sFlip), xlsPath, 'Sheet', 'allFatData');
-%                 
-%                     %% write to xls sheet (xls file like <nikita 2016)
-%                 if ~isnan(oCont.pAcfg.sliceSpacingInterpolationDistance) && any(abs(diff(s.sliceLoc) - oCont.pAcfg.sliceSpacingInterpolationDistance) > 0.5)
-%                     % prepare data: interpolate to equidistant slice loc
-%                     x = s.sliceLoc;
-%                     sliceLocOld = x;
-%                     window = oCont.pAcfg.sliceSpacingInterpolationDistance;
-%                     xn = [x(1):window:x(end)];
-%                     sliceLocNew = xn;
-%                     % find correct slice width (oContescription available (oContrawIO)) for volume calculation
-%                     sliceWidth = diff(sliceLocNew);
-%                     sW1 = sliceWidth./2; sW1(end+1) = 0;
-%                     sW2 = sliceWidth./2; sW2 = [0 sW2];
-%                     sliceWidth = sW1+sW2;
-%                     % now special treatment for boundary images (1 and end)
-%                     sliceWidth(1) = sliceWidth(1)+str2num(oCont.oComp(1).oImgs(1).sliceThickness)/2;
-%                     sliceWidth(end) = sliceWidth(end)+str2num(oCont.oComp(end).oImgs(end).sliceThickness)/2;
-%                     % slice Width done!
-%                     
-%                     %_Calc VatVol
-%                     y = s.VatArea;  % mm^2
-%                     [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
-%                     ynVatArea = interp1(x2, y2, sliceLocNew);
-%                     VatVol = ynVatArea.*sliceWidth*0.001;
-%                     
-%                     %_Calc SatVol
-%                     y = s.SatArea;  % mm^2
-%                     [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
-%                     ynSatArea = interp1(x2, y2, sliceLocNew);
-%                     SatVol = ynSatArea.*sliceWidth*0.001;
-%                     
-%                     %_Set WKs
-%                     LocsInd = find(~ismember(s.Loc1,''));
-%                     LocsVal = s.Loc1(LocsInd);
-%                     LocsPosOrig = s.sliceLoc(LocsInd);
-%                     Loc1 = cell(1, numel(sliceLocNew)); Loc1(:) = {''};
-%                     for i = 1:numel(LocsPosOrig)
-%                         [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
-%                         Loc1(ind) = LocsVal(i);
-%                     end
-%                     
-%                     %_Set Landmarks
-%                     LocsInd = find(~ismember(s.Loc2,''));
-%                     LocsVal = s.Loc2(LocsInd);
-%                     LocsPosOrig = s.sliceLoc(LocsInd);
-%                     Loc2 = cell(1, numel(sliceLocNew)); Loc2(:) = {''};
-%                     for i = 1:numel(LocsPosOrig)
-%                         [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
-%                         Loc2(ind) = LocsVal(i);
-%                     end
-%                     
-%                     %_Set sliceNr
-%                     sliceNr = 1:numel(sliceLocNew);
-%                     
-%                     %_Plot Interpolation Reults
-%                     figure();
-%                     plot(diff(x),'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
-%                     hold on
-%                     plot(diff(x2),'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
-%                     plot(diff(xn),'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
-%                     drawnow;
-%                     a = gca;
-%                     a.XLabel.String = 'sliceLocation';
-%                     a.YLabel.String = 'VatArea';
-%                     legend('show');
-%                     
-%                     figure();
-%                     plot(x, y, 'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
-%                     hold on
-%                     plot(x2,y2,'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
-%                     plot(xn,ynSatArea,'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
-%                     drawnow;
-%                     a = gca;
-%                     a.XLabel.String = 'sliceLocation';
-%                     a.YLabel.String = 'VatArea';
-%                     legend('show');
-%                     
-%                     
-%                     
-%                     
-%                     waitfor(msgbox('Slice locations are not equally distributed -> interpolation was done as shown in figure!'));
-%                     
-%                     
-%                 else
-%                     sliceLocNew = s.sliceLoc;
-%                     SatVol = s.SatVol;
-%                     VatVol = s.VatVol;
-%                     sliceNr = s.sliceNr;
-%                     Loc1 = s.Loc1;
-%                     Loc2 = s.Loc2;
-%                 end
-%                 
-%                 
-%                 Pos = 1;
-%                 xlswrite(xlsPath, {info.patientName} , 'FAT', 'A1');
-%                 xlswrite(xlsPath, {info.creationDate} , 'FAT', 'A2');
-%                 xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', 'A3');
-%                 xlswrite(xlsPath, sliceNr', 'FAT', 'A4');
-%                 xlswrite(xlsPath, sliceLocNew', 'FAT', 'B4');
-%                 xlswrite(xlsPath, [0 diff(sliceLocNew)]', 'FAT', 'C4');
-%                 xlswrite(xlsPath, round(SatVol)', 'FAT', 'D4');
-%                 xlswrite(xlsPath, round(VatVol)', 'FAT', 'E4');
-%                 xlswrite(xlsPath, Loc1', 'FAT', 'F4');
-%                 xlswrite(xlsPath, Loc2', 'FAT', 'G4');
-%                 Pos = 3+numel(VatVol)+1;
-%                 xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', ['A' num2str(Pos)]);
-%                 Pos = Pos+2;
-%                 xlswrite(xlsPath, {'Summe'}, 'FAT', ['A' num2str(Pos)]);
-%                 xlswrite(xlsPath, round(sum(SatVol)), 'FAT', ['D' num2str(Pos)]);
-%                 xlswrite(xlsPath, round(sum(VatVol)), 'FAT', ['E' num2str(Pos)]);
-%                 
-%                 waitbar(0.9, wb);
-%                 pause(0.3);
-%                 close(wb);
-%             end
-%             
-%             uiwait(msgbox('mirror save xls Done!!'));
-%             
-        end
-        
-        % % Femur Box % %
-        function oComp = mShowFemurBox(oComp, oCont)
-            oCont.pAcfg.contour.showFemurBox = ~oCont.pAcfg.contour.showFemurBox;
-            if oCont.pAcfg.contour.showFemurBox == 0
-                uiwait(msgbox('Femur Box not visible'));
+        % % Hemi Fat % %
+        function oComp = mShowHemiLine(oComp, oCont)
+            oCont.pAcfg.contour.showHemiLine = ~oCont.pAcfg.contour.showHemiLine;
+            if oCont.pAcfg.contour.showHemiLine == 0
+                uiwait(msgbox('Hemi Line not visible'));
             elseif oCont.pAcfg.contour.showFemurBox == 1
-                uiwait(msgbox('Femur Box now visible'));
+                uiwait(msgbox('Hemi Line now visible'));
             end
         end
-       
-        function mShowFemurBoxSize(oComp, hBox, T1, T2)
-            pos = hBox.getPosition;
-            %-------------------------------%
-            T1.String = num2str(round(pos(3)*oComp(1).oImgs(1).dicomInfo.PixelSpacing(1)));
-            T1.Position = [pos(1)+pos(3)/2-5, pos(2)-6];
-            T2.String = num2str(round(pos(4)*oComp(1).oImgs(1).dicomInfo.PixelSpacing(2)));
-            T2.Position = [pos(1)+pos(3)+2, pos(2)+pos(4)/2];
-        end
         
-        function oComp = mSetFemurBox(oComp, oCont)
-            hBox = imrect(oCont.pHandles.imgAxis);
-            pos = hBox.getPosition;
+        function oComp = mSetHemiLine(oComp, oCont)
+            hLine = imline(oCont.pHandles.imgAxis);
+            pos = hLine.getPosition;
+            imgSize = size(oComp(1).mGetStandardImg.data);
             %-------------------------------%
             Message = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
-            Message.String = 'Double click on box to confirm!';
-            Message.Position = [pos(1)+pos(3)/2-40, pos(2)+pos(4)/3-3];
+            Message.String = 'Double click on line to confirm!';
+            Message.Position = [oCont.pHandles.imgAxis.XLim(2)/2-50 oCont.pHandles.imgAxis.YLim(2)/2];
             Message.FontSize = 14;
             Message.FontWeight = 'bold';
-            T1 = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
-            T1.FontSize = 14;
-            T1.FontWeight = 'bold';
-            T2 = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
-            T2.FontSize = 14;
-            T2.FontWeight = 'bold';
-            oComp.mShowFemurBoxSize(hBox, T1, T2);
-            addNewPositionCallback(hBox, @(varargout)oComp.mShowFemurBoxSize(hBox, T1, T2));
             
-            wait(hBox);
-            pos = hBox.getPosition;
+            wait(hLine);
+            
+            % make mask
+            % get points at upper and lower edge of image according to y=mx+t
+            pos = hLine.getPosition;
+            x1 = pos(1,1);
+            x2 = pos(2,1);
+            y1 = pos(1,2);
+            y2 = pos(2,2);
+            m = (y2-y1)/(x2-x1);
+            t = y1-m*x1;
+            y11 = 1;
+            x11 = (y11-t)/m;
+            y22 = imgSize(2);
+            x22 = (y22-t)/m;
+            
+            [x y] = makeLinePoints(x11, y11, x22, y22);
+            lineMask = zeros(imgSize);
+            lineMask = oComp.mGetBoundMask(lineMask, [y' x']);
+            
+            leftMask = lineMask;
+            leftMask(1, x11:end) = 1;
+            leftMask(end, x22:end) = 1;
+            leftMask(:, end) = 1;
+            leftMask = imfill(leftMask,'holes');
+            
+            rightMask = lineMask;
+            rightMask(1, 1:x11) = 1;
+            rightMask(end, 1:x22) = 1;
+            rightMask(:, 1) = 1;
+            rightMask = imfill(rightMask,'holes');
+            
+            % store data
             datInd = oCont.pTable.row;
             oCompTmp = oCont.oComp(datInd);
-            oCompTmp.pVarious.femurBox = createMask(hBox);
+            oCompTmp.pVarious.hemiLine = hLine;
             oComp(datInd) = oCompTmp;
             
-            oCont.pVarious.femurBoxInd = datInd;
-            oCont.pVarious.femurBoxSize = pos;
-            oCont.pAcfg.contour.showFemurBox = 1;
+            oCont.pVarious.hemiLine.ind = datInd;
+            oCont.pVarious.hemiLine.pos = pos;
+            oCont.pVarious.hemiLine.leftMask = leftMask;
+            oCont.pVarious.hemiLine.rightMask = rightMask;
+            oCont.pAcfg.contour.showHemiLine = 1;
         end
         
-        function oComp = mDelFemurBox(oComp, oCont)
-            oCont.oComp(oCont.pVarious.femurBoxInd).pVarious = rmfield(oCont.oComp(oCont.pVarious.femurBoxInd).pVarious, 'femurBox');
-            oCont.pVarious.femurBoxInd = 0;
-            oCont.pAcfg.contour.showFemurBox = 0;
+        function oComp = mDelHemiLine(oComp, oCont)
+            oCont.oComp(oCont.pVarious.hemiLine.ind).pVarious = rmfield(oCont.oComp(oCont.pVarious.hemiLine.ind).pVarious, 'hemiLine');
+            oCont.pAcfg.contour.showHemiLine = 0;
         end
         
-        function oComp = mSaveBoxResults(oComp, oCont)
-            wb = waitbar(0, 'saving XLS box results');
+        function oComp = mSaveHemiResults(oComp, oCont)
+            oComp.mSaveRightHemiResults(oCont);
+            oComp.mSaveLeftHemiResults(oCont);
+        end
+        
+        function oComp = mSaveRightHemiResults(oComp, oCont)
+            Name = 'Right';
+            wb = waitbar(0, ['saving XLS ' Name ' hemiFat results']);
             wb.Name = 'saving....';
+            mask = oCont.pVarious.hemiLine.rightMask;
             %% collect infos
                 dicomInfo = oComp(1).mGetStandardImg.dicomInfo;
                 try info.comment = dicomInfo.StudyComments; end
@@ -1032,15 +516,11 @@ classdef cComputeFatSegment<cCompute
                 img = oComp(1).mGetStandardImg;
                 imgSize = size(img.data);
                     %% preparation
-                xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'FemurBox_data.xlsx']);
-                
-                    %% get masks
-                mask = oCont.oComp(oCont.pVarious.femurBoxInd).pVarious.femurBox;
-                
+                xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'HemiFat_' Name '_data.xlsx']);
                     %% read values from oComp to s struct
                 for i = 1:numel(oComp)
                     oCompTmp = oComp(i);
-                    %% modify Boundaries for left side only
+                    %% modify Boundaries
                     if oCompTmp.pSliceDone
                     try
                         oBoundInd = oCompTmp.oBoundaries.getBoundInd('outerBound');
@@ -1112,6 +592,599 @@ classdef cComputeFatSegment<cCompute
                     end
                     s.useSlice (i) = oCompTmp.pUseSlice;
                 end
+                keepInd = [find(ismember(s.Loc2, 'FK')):find(ismember(s.Loc2, 'ZF'))];
+                if isempty(keepInd)
+                    answer = questdlg('Could not find FK or ZF landmark', 'Landmark missing', 'Save marked slices', 'Abord', 'Abord')
+                    switch answer
+                        case 'Abord'
+                            return
+                        case 'Save marked slices'
+                            keepInd = s.useSlice;
+                    end
+                end
+                
+                tmp = s.useSlice;
+                s.useSlice = zeros(size(tmp));
+                s.useSlice(keepInd) = tmp(keepInd);
+                % postprocessing
+                s.Loc1(ismember(s.Loc1, 'none')) = {''};
+                s.Loc2(ismember(s.Loc2, 'none')) = {''};
+                
+                sFlip = structfun(@(x) x', s, 'Uniformoutput', 0);
+                    %% write to xls sheet (use all available data)
+                writetable(struct2table(info), xlsPath, 'Sheet', 'infos');
+                writetable(struct2table(sFlip), xlsPath, 'Sheet', 'allFatData');
+                waitbar(0.6, wb);
+                    %% write to xls sheet (xls file like <nikita 2016)
+                % filter accordint to pUseSlice
+                s.SatVol(~s.useSlice) = 0;
+                s.VatVol(~s.useSlice) = 0;
+            
+                if ~isnan(oCont.pAcfg.sliceSpacingInterpolationDistance) && any(abs(diff(s.sliceLoc) - oCont.pAcfg.sliceSpacingInterpolationDistance) > 0.5)
+                    % prepare data: interpolate to equidistant slice loc
+                    x = s.sliceLoc;
+                    sliceLocOld = x;
+                    window = oCont.pAcfg.sliceSpacingInterpolationDistance;
+                    xn = [x(1):window:x(end)];
+                    sliceLocNew = xn;
+                    % find correct slice width (oContescription available (oContrawIO)) for volume calculation
+                    sliceWidth = diff(sliceLocNew);
+                    sW1 = sliceWidth./2; sW1(end+1) = 0;
+                    sW2 = sliceWidth./2; sW2 = [0 sW2];
+                    sliceWidth = sW1+sW2;
+                    % now special treatment for boundary images (1 and end)
+                    sliceWidth(1) = sliceWidth(1)+str2num(oCont.oComp(1).oImgs(1).sliceThickness)/2;
+                    sliceWidth(end) = sliceWidth(end)+str2num(oCont.oComp(end).oImgs(end).sliceThickness)/2;
+                    % slice Width done!
+                    
+                    %_Calc VatVol
+                    y = s.VatArea;  % mm^2
+                    [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
+                    ynVatArea = interp1(x2, y2, sliceLocNew);
+                    VatVol = ynVatArea.*sliceWidth*0.001;
+                    
+                    %_Calc SatVol
+                    y = s.SatArea;  % mm^2
+                    [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
+                    ynSatArea = interp1(x2, y2, sliceLocNew);
+                    SatVol = ynSatArea.*sliceWidth*0.001;
+                    
+                    %_Set WKs
+                    LocsInd = find(~ismember(s.Loc1,''));
+                    LocsVal = s.Loc1(LocsInd);
+                    LocsPosOrig = s.sliceLoc(LocsInd);
+                    Loc1 = cell(1, numel(sliceLocNew)); Loc1(:) = {''};
+                    for i = 1:numel(LocsPosOrig)
+                        [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
+                        Loc1(ind) = LocsVal(i);
+                    end
+                    
+                    %_Set Landmarks
+                    LocsInd = find(~ismember(s.Loc2,''));
+                    LocsVal = s.Loc2(LocsInd);
+                    LocsPosOrig = s.sliceLoc(LocsInd);
+                    Loc2 = cell(1, numel(sliceLocNew)); Loc2(:) = {''};
+                    for i = 1:numel(LocsPosOrig)
+                        [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
+                        Loc2(ind) = LocsVal(i);
+                    end
+                    
+                    %_Set sliceNr
+                    sliceNr = 1:numel(sliceLocNew);
+                    
+                    %_Plot Interpolation Reults
+                    figure();
+                    plot(diff(x),'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
+                    hold on
+                    plot(diff(x2),'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
+                    plot(diff(xn),'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
+                    drawnow;
+                    a = gca;
+                    a.XLabel.String = 'sliceLocation';
+                    a.YLabel.String = 'VatArea';
+                    legend('show');
+                    
+                    figure();
+                    plot(x, y, 'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
+                    hold on
+                    plot(x2,y2,'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
+                    plot(xn,ynSatArea,'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
+                    drawnow;
+                    a = gca;
+                    a.XLabel.String = 'sliceLocation';
+                    a.YLabel.String = 'VatArea';
+                    legend('show');
+                    
+                    
+                    
+                    
+                    waitfor(msgbox('Slice locations are not equally distributed -> interpolation was done as shown in figure!'));
+                    
+                    
+                else
+                    sliceLocNew = s.sliceLoc;
+                    SatVol = s.SatVol;
+                    VatVol = s.VatVol;
+                    sliceNr = s.sliceNr;
+                    Loc1 = s.Loc1;
+                    Loc2 = s.Loc2;
+                end
+                
+                
+                Pos = 1;
+                xlswrite(xlsPath, {info.patientName} , 'FAT', 'A1');
+                xlswrite(xlsPath, {info.creationDate} , 'FAT', 'A2');
+                xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', 'A3');
+                xlswrite(xlsPath, sliceNr', 'FAT', 'A4');
+                xlswrite(xlsPath, sliceLocNew', 'FAT', 'B4');
+                xlswrite(xlsPath, [0 diff(sliceLocNew)]', 'FAT', 'C4');
+                xlswrite(xlsPath, round(SatVol)', 'FAT', 'D4');
+                xlswrite(xlsPath, round(VatVol)', 'FAT', 'E4');
+                xlswrite(xlsPath, Loc1', 'FAT', 'F4');
+                xlswrite(xlsPath, Loc2', 'FAT', 'G4');
+                Pos = 3+numel(VatVol)+1;
+                xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', ['A' num2str(Pos)]);
+                Pos = Pos+2;
+                xlswrite(xlsPath, {'Summe'}, 'FAT', ['A' num2str(Pos)]);
+                xlswrite(xlsPath, round(sum(SatVol)), 'FAT', ['D' num2str(Pos)]);
+                xlswrite(xlsPath, round(sum(VatVol)), 'FAT', ['E' num2str(Pos)]);
+                waitbar(0.9, wb);
+                pause(0.3);
+                close(wb);
+        end
+        
+        function oComp = mSaveLeftHemiResults(oComp, oCont)
+            Name = 'Left';
+            wb = waitbar(0, ['saving XLS ' Name ' hemiFat results']);
+            wb.Name = 'saving....';
+            mask = oCont.pVarious.hemiLine.leftMask;
+            %% collect infos
+                dicomInfo = oComp(1).mGetStandardImg.dicomInfo;
+                try info.comment = dicomInfo.StudyComments; end
+                try info.description = dicomInfo.RequestedProcedureDescription; end
+                try info.physicianName = dicomInfo.ReferringPhysicianName.FamilyName; end
+                try info.institution = dicomInfo.InstitutionName; end
+                try info.stationName = dicomInfo.StationName; end
+                try info.manufacturer = dicomInfo.Manufacturer; end
+                try info.manufacturerModelName = dicomInfo.ManufacturerModelName; end
+                
+                try info.patientName = [dicomInfo.PatientName.FamilyName '_' dicomInfo.PatientName.GivenName];
+                catch
+                    try info.patientName = dicomInfo.PatientName.FamilyName;
+                    catch
+                        info.patientName = 'NoName';
+                    end
+                end
+                try info.patientWeight = num2str(dicomInfo.PatientWeight); end
+                try info.patientAge = dicomInfo.PatientAge; end
+                try info.patientSex = dicomInfo.PatientSex; end
+                try info.patientBirthDat = dicomInfo.PatientBirthDate; end
+                try info.patientIoCont = dicomInfo.PatientID; end
+                
+                try info.creationDate = datestr(datenum(dicomInfo.InstanceCreationDate, 'yyyymmdd'), 'dd.mm.yyyy'); end
+                
+                % remove empty entries
+                emptyInd = structfun(@isempty, info);
+                infoFields = fieldnames(info);
+                for i = 1:numel(emptyInd)
+                    if emptyInd(i)
+                        info = rmfield(info, infoFields(i));
+                    end
+                end
+                
+                waitbar(0.3, wb);
+            %% create struct with oComp!
+                img = oComp(1).mGetStandardImg;
+                imgSize = size(img.data);
+                    %% preparation
+                xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'HemiFat_' Name '_data.xlsx']);
+                    %% read values from oComp to s struct
+                for i = 1:numel(oComp)
+                    oCompTmp = oComp(i);
+                    %% modify Boundaries
+                    if oCompTmp.pSliceDone
+                    try
+                        oBoundInd = oCompTmp.oBoundaries.getBoundInd('outerBound');
+                        oBound = oCompTmp.oBoundaries(oBoundInd);
+                        oBoundMask = oCompTmp.mGetBoundMask(img.data, oBound.coord);
+                        oBoundMask = oBoundMask&mask;
+                        tmp = bwboundaries(oBoundMask);
+                        oBound.coord = tmp{1};
+                    catch
+                        oBound = [];
+                    end
+                    
+                    try
+                        iBoundInd = oCompTmp.oBoundaries.getBoundInd('innerBound');
+                        iBound = oCompTmp.oBoundaries(iBoundInd);
+                        iBoundMask = oCompTmp.mGetBoundMask(img.data, iBound.coord);
+                        iBoundMask = iBoundMask&mask;
+                        tmp = bwboundaries(iBoundMask);
+                        iBound.coord = tmp{1};
+                    catch
+                        iBound = [];
+                    end
+                    
+                    try
+                        vBoundInd = oCompTmp.oBoundaries.getBoundInd('visceralBound');
+                        vBound = oCompTmp.oBoundaries(vBoundInd);
+                        vBoundMask = oCompTmp.mGetBoundMask(img.data, vBound.coord);
+                        vBoundMask = vBoundMask&mask;
+                        tmp = bwboundaries(vBoundMask);
+                        vBound.coord = tmp{1};
+                    catch
+                        vBound = [];
+                    end
+                    
+                    oCompTmp.oBoundaries = [oBound iBound vBound];
+                    
+                    end
+                    
+                    s.voxVol(i) = oCompTmp.oImgs(1).getVoxelVolume;
+                    s.fatThresh(i) = oCompTmp.pFatThresh;
+                    try 
+                        oBoundCoord = oCompTmp.oBoundaries(oCompTmp.oBoundaries.getBoundInd('outerBound')); 
+                    catch
+                        oBoundCoord = []; 
+                    end
+                    try 
+                        oBoundMask = oCompTmp.mGetBoundMask(oCompTmp.mWaterImg.data, oBoundcoord.coord); 
+                    catch
+                        oBoundMask = [];
+                    end
+                    tmp = regionprops(oBoundMask , 'Area', 'Perimeter');
+                    if isempty(tmp)
+                        tmp(1).Area = 0;
+                        tmp(1).Perimeter = 0;
+                    end
+                    s.bodyArea(i) = tmp.Area;
+                    s.bodyPerimeter(i) = tmp.Perimeter;
+                    
+                    s.SatArea(i) = oCompTmp.mVolumeSAT/oCompTmp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
+                    s.VatArea(i) = oCompTmp.mVolumeVAT/oCompTmp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
+                    s.SatVol(i) = oCompTmp.mVolumeSAT;
+                    s.VatVol(i) = oCompTmp.mVolumeVAT;
+                    s.Loc1(i) = {oCompTmp.pLoc1};
+                    s.Loc2(i) = {oCompTmp.pLoc2};
+                    s.sliceLoc(i) = str2num(oCompTmp.pSliceLocation);
+                    s.sliceNr(i) = i;
+                    if isempty(oCompTmp.pUseSlice)
+                        oCompTmp.pUseSlice = false;
+                    end
+                    s.useSlice (i) = oCompTmp.pUseSlice;
+                end
+                keepInd = [find(ismember(s.Loc2, 'FK')):find(ismember(s.Loc2, 'ZF'))];
+                if isempty(keepInd)
+                    answer = questdlg('Could not find FK or ZF landmark', 'Landmark missing', 'Save marked slices', 'Abord', 'Abord')
+                    switch answer
+                        case 'Abord'
+                            return
+                        case 'Save marked slices'
+                            keepInd = s.useSlice;
+                    end
+                end
+                
+                tmp = s.useSlice;
+                s.useSlice = zeros(size(tmp));
+                s.useSlice(keepInd) = tmp(keepInd);
+                % postprocessing
+                s.Loc1(ismember(s.Loc1, 'none')) = {''};
+                s.Loc2(ismember(s.Loc2, 'none')) = {''};
+                
+                sFlip = structfun(@(x) x', s, 'Uniformoutput', 0);
+                    %% write to xls sheet (use all available data)
+                writetable(struct2table(info), xlsPath, 'Sheet', 'infos');
+                writetable(struct2table(sFlip), xlsPath, 'Sheet', 'allFatData');
+                waitbar(0.6, wb);
+                    %% write to xls sheet (xls file like <nikita 2016)
+                % filter accordint to pUseSlice
+                s.SatVol(~s.useSlice) = 0;
+                s.VatVol(~s.useSlice) = 0;
+            
+                if ~isnan(oCont.pAcfg.sliceSpacingInterpolationDistance) && any(abs(diff(s.sliceLoc) - oCont.pAcfg.sliceSpacingInterpolationDistance) > 0.5)
+                    % prepare data: interpolate to equidistant slice loc
+                    x = s.sliceLoc;
+                    sliceLocOld = x;
+                    window = oCont.pAcfg.sliceSpacingInterpolationDistance;
+                    xn = [x(1):window:x(end)];
+                    sliceLocNew = xn;
+                    % find correct slice width (oContescription available (oContrawIO)) for volume calculation
+                    sliceWidth = diff(sliceLocNew);
+                    sW1 = sliceWidth./2; sW1(end+1) = 0;
+                    sW2 = sliceWidth./2; sW2 = [0 sW2];
+                    sliceWidth = sW1+sW2;
+                    % now special treatment for boundary images (1 and end)
+                    sliceWidth(1) = sliceWidth(1)+str2num(oCont.oComp(1).oImgs(1).sliceThickness)/2;
+                    sliceWidth(end) = sliceWidth(end)+str2num(oCont.oComp(end).oImgs(end).sliceThickness)/2;
+                    % slice Width done!
+                    
+                    %_Calc VatVol
+                    y = s.VatArea;  % mm^2
+                    [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
+                    ynVatArea = interp1(x2, y2, sliceLocNew);
+                    VatVol = ynVatArea.*sliceWidth*0.001;
+                    
+                    %_Calc SatVol
+                    y = s.SatArea;  % mm^2
+                    [x2 y2] = DconvV2(x,y,window,'xmeanymean',[]); x2 = x2{1}; y2 = y2{1};
+                    ynSatArea = interp1(x2, y2, sliceLocNew);
+                    SatVol = ynSatArea.*sliceWidth*0.001;
+                    
+                    %_Set WKs
+                    LocsInd = find(~ismember(s.Loc1,''));
+                    LocsVal = s.Loc1(LocsInd);
+                    LocsPosOrig = s.sliceLoc(LocsInd);
+                    Loc1 = cell(1, numel(sliceLocNew)); Loc1(:) = {''};
+                    for i = 1:numel(LocsPosOrig)
+                        [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
+                        Loc1(ind) = LocsVal(i);
+                    end
+                    
+                    %_Set Landmarks
+                    LocsInd = find(~ismember(s.Loc2,''));
+                    LocsVal = s.Loc2(LocsInd);
+                    LocsPosOrig = s.sliceLoc(LocsInd);
+                    Loc2 = cell(1, numel(sliceLocNew)); Loc2(:) = {''};
+                    for i = 1:numel(LocsPosOrig)
+                        [val ind] = min(abs(sliceLocNew-LocsPosOrig(i)));
+                        Loc2(ind) = LocsVal(i);
+                    end
+                    
+                    %_Set sliceNr
+                    sliceNr = 1:numel(sliceLocNew);
+                    
+                    %_Plot Interpolation Reults
+                    figure();
+                    plot(diff(x),'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
+                    hold on
+                    plot(diff(x2),'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
+                    plot(diff(xn),'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
+                    drawnow;
+                    a = gca;
+                    a.XLabel.String = 'sliceLocation';
+                    a.YLabel.String = 'VatArea';
+                    legend('show');
+                    
+                    figure();
+                    plot(x, y, 'LineStyle', 'none', 'Marker', 'o', 'Color', 'black', 'DisplayName', 'raw');
+                    hold on
+                    plot(x2,y2,'LineStyle', 'none', 'Marker', 'x', 'Color', 'black', 'DisplayName', 'smooth');
+                    plot(xn,ynSatArea,'LineStyle', 'none', 'Marker', '.', 'Color', 'red', 'DisplayName', 'interpolated');
+                    drawnow;
+                    a = gca;
+                    a.XLabel.String = 'sliceLocation';
+                    a.YLabel.String = 'VatArea';
+                    legend('show');
+                    
+                    
+                    
+                    
+                    waitfor(msgbox('Slice locations are not equally distributed -> interpolation was done as shown in figure!'));
+                    
+                    
+                else
+                    sliceLocNew = s.sliceLoc;
+                    SatVol = s.SatVol;
+                    VatVol = s.VatVol;
+                    sliceNr = s.sliceNr;
+                    Loc1 = s.Loc1;
+                    Loc2 = s.Loc2;
+                end
+                
+                
+                Pos = 1;
+                xlswrite(xlsPath, {info.patientName} , 'FAT', 'A1');
+                xlswrite(xlsPath, {info.creationDate} , 'FAT', 'A2');
+                xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', 'A3');
+                xlswrite(xlsPath, sliceNr', 'FAT', 'A4');
+                xlswrite(xlsPath, sliceLocNew', 'FAT', 'B4');
+                xlswrite(xlsPath, [0 diff(sliceLocNew)]', 'FAT', 'C4');
+                xlswrite(xlsPath, round(SatVol)', 'FAT', 'D4');
+                xlswrite(xlsPath, round(VatVol)', 'FAT', 'E4');
+                xlswrite(xlsPath, Loc1', 'FAT', 'F4');
+                xlswrite(xlsPath, Loc2', 'FAT', 'G4');
+                Pos = 3+numel(VatVol)+1;
+                xlswrite(xlsPath, {'Slice #' 'Slice Pos (S)' 'Slice Gap' 'SAT [cm^3]' 'VAT [cm^3]' 'Loc1' 'Loc2'} , 'FAT', ['A' num2str(Pos)]);
+                Pos = Pos+2;
+                xlswrite(xlsPath, {'Summe'}, 'FAT', ['A' num2str(Pos)]);
+                xlswrite(xlsPath, round(sum(SatVol)), 'FAT', ['D' num2str(Pos)]);
+                xlswrite(xlsPath, round(sum(VatVol)), 'FAT', ['E' num2str(Pos)]);
+                waitbar(0.9, wb);
+                pause(0.3);
+                close(wb);
+        end
+        
+        % % Femur Box % %
+        function oComp = mShowFemurBox(oComp, oCont)
+            oCont.pAcfg.contour.showFemurBox = ~oCont.pAcfg.contour.showFemurBox;
+            if oCont.pAcfg.contour.showFemurBox == 0
+                uiwait(msgbox('Femur Box not visible'));
+            elseif oCont.pAcfg.contour.showFemurBox == 1
+                uiwait(msgbox('Femur Box now visible'));
+            end
+        end
+        
+        function oComp = mSetFemurBox(oComp, oCont)
+            hBox = imrect(oCont.pHandles.imgAxis);
+            pos = hBox.getPosition;
+            %-------------------------------%
+            Message = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
+            Message.String = 'Double click on box to confirm!';
+            Message.Position = [pos(1)+pos(3)/2-40, pos(2)+pos(4)/3-3];
+            Message.FontSize = 14;
+            Message.FontWeight = 'bold';
+            T1 = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
+            T1.FontSize = 14;
+            T1.FontWeight = 'bold';
+            T2 = text(0, 0, '', 'Parent', oCont.pHandles.imgAxis, 'Color', 'white');
+            T2.FontSize = 14;
+            T2.FontWeight = 'bold';
+            oComp.mShowFemurBoxSize(hBox, T1, T2);
+            addNewPositionCallback(hBox, @(varargout)oComp.mShowFemurBoxSize(hBox, T1, T2));
+            
+            wait(hBox);
+            pos = hBox.getPosition;
+            datInd = oCont.pTable.row;
+            oCompTmp = oCont.oComp(datInd);
+            oCompTmp.pVarious.femurBox = createMask(hBox);
+            oComp(datInd) = oCompTmp;
+            
+            oCont.pVarious.femurBoxInd = datInd;
+            oCont.pVarious.femurBoxSize = pos;
+            oCont.pAcfg.contour.showFemurBox = 1;
+        end
+        
+        function oComp = mDelFemurBox(oComp, oCont)
+            oCont.oComp(oCont.pVarious.femurBoxInd).pVarious = rmfield(oCont.oComp(oCont.pVarious.femurBoxInd).pVarious, 'femurBox');
+            oCont.pVarious.femurBoxInd = 0;
+            oCont.pAcfg.contour.showFemurBox = 0;
+        end
+        
+        function mShowFemurBoxSize(oComp, hBox, T1, T2)
+            pos = hBox.getPosition;
+            %-------------------------------%
+            T1.String = num2str(round(pos(3)*oComp(1).oImgs(1).dicomInfo.PixelSpacing(1)));
+            T1.Position = [pos(1)+pos(3)/2-5, pos(2)-6];
+            T2.String = num2str(round(pos(4)*oComp(1).oImgs(1).dicomInfo.PixelSpacing(2)));
+            T2.Position = [pos(1)+pos(3)+2, pos(2)+pos(4)/2];
+        end
+        
+        function oComp = mSaveBoxResults(oComp, oCont)
+            wb = waitbar(0, 'saving XLS box results');
+            wb.Name = 'saving....';
+            %% collect infos
+                dicomInfo = oComp(1).mGetStandardImg.dicomInfo;
+                try info.comment = dicomInfo.StudyComments; end
+                try info.description = dicomInfo.RequestedProcedureDescription; end
+                try info.physicianName = dicomInfo.ReferringPhysicianName.FamilyName; end
+                try info.institution = dicomInfo.InstitutionName; end
+                try info.stationName = dicomInfo.StationName; end
+                try info.manufacturer = dicomInfo.Manufacturer; end
+                try info.manufacturerModelName = dicomInfo.ManufacturerModelName; end
+                
+                try info.patientName = [dicomInfo.PatientName.FamilyName '_' dicomInfo.PatientName.GivenName];
+                catch
+                    try info.patientName = dicomInfo.PatientName.FamilyName;
+                    catch
+                        info.patientName = 'NoName';
+                    end
+                end
+                try info.patientWeight = num2str(dicomInfo.PatientWeight); end
+                try info.patientAge = dicomInfo.PatientAge; end
+                try info.patientSex = dicomInfo.PatientSex; end
+                try info.patientBirthDat = dicomInfo.PatientBirthDate; end
+                try info.patientIoCont = dicomInfo.PatientID; end
+                
+                try info.creationDate = datestr(datenum(dicomInfo.InstanceCreationDate, 'yyyymmdd'), 'dd.mm.yyyy'); end
+                
+                % remove empty entries
+                emptyInd = structfun(@isempty, info);
+                infoFields = fieldnames(info);
+                for i = 1:numel(emptyInd)
+                    if emptyInd(i)
+                        info = rmfield(info, infoFields(i));
+                    end
+                end
+                
+                waitbar(0.3, wb);
+            %% create struct with oComp!
+                img = oComp(1).mGetStandardImg;
+                imgSize = size(img.data);
+                    %% preparation
+                xlsPath = fullfile(oCont.pAcfg.lastLoadPath, [oCont.mGetSaveFilePrefix 'FemurBox_data.xlsx']);
+                
+                    %% get masks
+                mask = oCont.oComp(oCont.pVarious.femurBoxInd).pVarious.femurBox;
+                
+                    %% read values from oComp to s struct
+                    for i = 1:numel(oComp)
+                        oCompTmp = oComp(i);
+                        %% modify Boundaries for left side only
+                        if oCompTmp.pSliceDone
+                            try
+                                oBoundInd = oCompTmp.oBoundaries.getBoundInd('outerBound');
+                                oBound = oCompTmp.oBoundaries(oBoundInd);
+                                oBoundMask = oCompTmp.mGetBoundMask(img.data, oBound.coord);
+                                oBoundMask = oBoundMask&mask;
+                                tmp = bwboundaries(oBoundMask);
+                                oBound.coord = tmp{1};
+                            catch
+                                oBound = [];
+                            end
+                            
+                            try
+                                iBoundInd = oCompTmp.oBoundaries.getBoundInd('innerBound');
+                                iBound = oCompTmp.oBoundaries(iBoundInd);
+                                iBoundMask = oCompTmp.mGetBoundMask(img.data, iBound.coord);
+                                iBoundMask = iBoundMask&mask;
+                                tmp = bwboundaries(iBoundMask);
+                                iBound.coord = tmp{1};
+                            catch
+                                iBound = [];
+                            end
+                            
+                            try
+                                vBoundInd = oCompTmp.oBoundaries.getBoundInd('visceralBound');
+                                vBound = oCompTmp.oBoundaries(vBoundInd);
+                                vBoundMask = oCompTmp.mGetBoundMask(img.data, vBound.coord);
+                                vBoundMask = vBoundMask&mask;
+                                tmp = bwboundaries(vBoundMask);
+                                vBound.coord = tmp{1};
+                            catch
+                                vBound = [];
+                            end
+                            
+                            oCompTmp.oBoundaries = [oBound iBound vBound];
+                            
+                        end
+                        
+                        s.voxVol(i) = oCompTmp.oImgs(1).getVoxelVolume;
+                        s.fatThresh(i) = oCompTmp.pFatThresh;
+                        try
+                            oBoundCoord = oCompTmp.oBoundaries(oCompTmp.oBoundaries.getBoundInd('outerBound'));
+                        catch
+                            oBoundCoord = [];
+                        end
+                        try
+                            oBoundMask = oCompTmp.mGetBoundMask(oCompTmp.mWaterImg.data, oBoundcoord.coord);
+                        catch
+                            oBoundMask = [];
+                        end
+                        tmp = regionprops(oBoundMask , 'Area', 'Perimeter');
+                        if isempty(tmp)
+                            tmp(1).Area = 0;
+                            tmp(1).Perimeter = 0;
+                        end
+                        s.bodyArea(i) = tmp.Area;
+                        s.bodyPerimeter(i) = tmp.Perimeter;
+                        
+                        s.SatArea(i) = oCompTmp.mVolumeSAT/oCompTmp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
+                        s.VatArea(i) = oCompTmp.mVolumeVAT/oCompTmp.oImgs(1).dicomInfo.SpacingBetweenSlices*1000;
+                        s.SatVol(i) = oCompTmp.mVolumeSAT;
+                        s.VatVol(i) = oCompTmp.mVolumeVAT;
+                        s.Loc1(i) = {oCompTmp.pLoc1};
+                        s.Loc2(i) = {oCompTmp.pLoc2};
+                        s.sliceLoc(i) = str2num(oCompTmp.pSliceLocation);
+                        s.sliceNr(i) = i;
+                        if isempty(oCompTmp.pUseSlice)
+                            oCompTmp.pUseSlice = false;
+                        end
+                        s.useSlice (i) = oCompTmp.pUseSlice;
+                    end
+                    keepInd = [find(ismember(s.Loc2, 'FK')):find(ismember(s.Loc2, 'ZF'))];
+                    if isempty(keepInd)
+                        answer = questdlg('Could not find FK or ZF landmark', 'Landmark missing', 'Save marked slices', 'Abord', 'Abord')
+                        switch answer
+                            case 'Abord'
+                                return
+                            case 'Save marked slices'
+                                keepInd = s.useSlice;
+                        end
+                    end
+                    
+                    tmp = s.useSlice;
+                    s.useSlice = zeros(size(tmp));
+                    s.useSlice(keepInd) = tmp(keepInd);
                 % postprocessing
                 s.Loc1(ismember(s.Loc1, 'none')) = {''};
                 s.Loc2(ismember(s.Loc2, 'none')) = {''};
@@ -1304,8 +1377,9 @@ classdef cComputeFatSegment<cCompute
             % indicate the VatFat pixels with overlay
             maskInd = find(VatFatPxl);
             color = 1-oCont.pAcfg.color3;
-            oComp.pHistory.plotImgRGB = oComp.pHistory.plotImg.conv2RGB;
-            img = oComp.pHistory.plotImg.data;
+            %oComp.pHistory.plotImgRGB = oComp.pHistory.plotImg.conv2RGB;
+            img = oComp.mGetImg2Display(oCont);
+            img = img.data;
 %             if isfield(oComp.pHistory, 'vatOverlay') && ~isempty(oComp.pHistory.vatOverlay)
 %                 img = oCont.pHandles.imgDisplay.CData;
 %                 % remove overlay
@@ -1335,12 +1409,45 @@ classdef cComputeFatSegment<cCompute
         end
         
         % % % Segmentaion Organisation % % %
+        function oComp = mVisceralFromInnerBound(oComp, oCont)
+            if numel(oComp)==1
+                Ind = 1;
+            else
+                Ind = oCont.pTable.row;
+            end
+            iB = oComp(Ind).oBoundaries.getBoundOfType('innerBound');
+            vB = oComp(Ind).oBoundaries.getBoundOfType('visceralBound');
+            
+            imgTmp = oComp(Ind).mGetImgOfType('OutPhase');
+            iBMask = oComp(Ind).mGetBoundMask(imgTmp.data, iB.coord);
+            
+            %% % find visceralBound
+            visceralBound.Mask = imerode(iBMask, strel('disk', 2, 0));
+            cc = bwconncomp(visceralBound.Mask,4);
+            [a maxInd] = max(cellfun(@(x) size(x,1), cc.PixelIdxList));    % find maximum area
+            visceralBound.Mask = zeros(size(iBMask));
+            visceralBound.Mask(cc.PixelIdxList{maxInd}) = 1;
+            
+            visceralBound.coord = cCompute.mGetBoundaryImageCoord(visceralBound.Mask);
+            
+            vB.coord = visceralBound.coord;
+            
+            oComp(Ind).oBoundaries = oComp(Ind).oBoundaries.setBound(vB);
+            
+            if numel(oComp(Ind).oBoundaries)==3
+                if oComp(Ind).pFatThresh==0
+                    oComp(Ind) = oComp(Ind).mFindThreshLvl(oCont);
+                end
+            end
+            oComp(Ind) = oComp(Ind).mSet_pSliceDone;
+        end
+        
         function oComp = mAutoSegment(oComp, segProps)
             iBound = oComp.oBoundaries.getBoundOfType('innerBound');
             oBound = oComp.oBoundaries.getBoundOfType('outerBound');
             vBound = oComp.oBoundaries.getBoundOfType('visceralBound');
             %-------------------------------%
-            switch segProps.name
+            switch segProps.name %segProps.name
                 case 'NikitaFat160322Segmenting.m'
                     imgBase = oComp.mGetImgOfType('OutPhase');
                     imgInfo = imgBase.dicomInfo;
@@ -1354,10 +1461,156 @@ classdef cComputeFatSegment<cCompute
                     oBound.coord = bwboundaries(outerBound);
                     iBound.coord = bwboundaries(innerBound);
                     vBound.coord = bwboundaries(visceralBound);
+                case 'RS_BodyBounds'
+                    imgOut = oComp.mGetImgOfType('OutPhase');
+                    iDat = imgOut.data;
+                    iZero = zeros(size(iDat));
+                    
+                    oB.ThreshMultip = 1;
+                    oB.ThreshWindowSizeMultip = 1;
+                    
+                    debug = false;
+                    if debug
+                        f = figure;
+                        im = imshow(iDat,'DisplayRange', []);
+                        ax = f.Children;
+                    end
+                    
+                    code = 'start';
+                    while ~strcmp(code, 'Done')
+                        disp(code)
+                        switch code
+                            % RS_BodyBounds(img, mode, outerBoundThreshMultip, innerBoundThreshMultip, innerBoundThreshWindowSizeMultip, visceralBoundErodeSize)
+                            case 'start'
+                                oB.status = 'to be done';
+                                code = 'AutoSegment_oB';
+                            case 'AutoSegment_oB'
+                                iB = [];
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'outerBound', oB, iB, vB);
+                            case 'Precheck: outerBound in dark area'
+                                oB.ThreshWindowSizeMultip = oB.ThreshWindowSizeMultip+0.05;
+                                code = 'AutoSegment_oB';
+                            case 'Precheck: outerBound not round'
+                                oB.ThreshMultip = oB.ThreshMultip-0.05;
+                                code = 'AutoSegment_oB';
+                            case 'outerBound OK'
+                                code = 'AutoSegment_iB_1';
+                                %code = 'checkBoundaryAppropriateness';
+                                
+                            case 'AutoSegment_iB_1'
+                                iB.ThreshMultip = 0.7;
+                                iB.ThreshWindowSizeMultip = 0.9;
+                                iB.ThreshSensitivity = 0.1;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(1) = iB;
+                                code = 'AutoSegment_iB_2';
+                            case 'AutoSegment_iB_2'
+                                iB.ThreshMultip = 0.7;
+                                iB.ThreshWindowSizeMultip = 4;
+                                iB.ThreshSensitivity = 0.1;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(2) = iB;
+                                code = 'AutoSegment_iB_3';
+                            case 'AutoSegment_iB_3'
+                                iB.ThreshMultip = 0.8;
+                                iB.ThreshWindowSizeMultip = 0.7;
+                                iB.ThreshSensitivity = 0.6;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(3) = iB;
+                                code = 'AutoSegment_iB_4';
+                            case 'AutoSegment_iB_4'
+                                iB.ThreshMultip = 0.72;
+                                iB.ThreshWindowSizeMultip = 0.4;
+                                iB.ThreshSensitivity = 0.1;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(4) = iB;
+                                code = 'AutoSegment_iB_5';
+                            case 'AutoSegment_iB_5'
+                                iB.ThreshMultip = 1.1;
+                                iB.ThreshWindowSizeMultip = 0.7;
+                                iB.ThreshSensitivity = 0.1;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(5) = iB;
+                                code = 'AutoSegment_iB_6';
+                            case 'AutoSegment_iB_6'
+                                iB.ThreshMultip = 0.8;
+                                iB.ThreshWindowSizeMultip = 0.65;
+                                iB.ThreshSensitivity = 0.4;
+                                iB.maxCircularity = 2.3;
+                                vB = [];
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'innerBound', oB, iB, vB);
+                                iBs(6) = iB;
+                                code = 'selectBestBound_iB';
+                                
+                            case 'selectBestBound_iB'
+                                [ind quality] = checkBoundaryAppropriateness('innerBound', oB, iBs , vB, iDat, iZero);
+                                %ind=1
+                                oComp.pVarious.AutoSegment_ind = ind;
+                                oComp.pVarious.AutoSegment_quality = quality;
+                                iB = iBs(ind);
+                                code = 'AutoSegment_vB_1'
+                                
+                            case 'AutoSegment_vB_1'
+                                vB.ErodeSize = 2;
+                                [oB iB vB code] = RS_BodyBounds(imgOut, 'MRT_OutPhase', 'visceralBound', oB, iB, vB);
+                                vBs(1) = vB;
+                                code = 'selectBestBound_vB';
+                            case 'selectBestBound_vB'
+                                vB = vB;
+                                code = 'Done'
+                                
+                            
+                        end
+                        
+                        if debug
+                            axChilds = ax.Children;
+                            for i = 1:numel(axChilds)
+                                if isa(axChilds(i), 'matlab.graphics.primitive.Image')
+                                else
+                                    delete(axChilds(i));
+                                end
+                            end
+                            try
+                                cControl.mDrawContour(ax, cCompute.mGetBoundaryImageCoord(oB.Mask), {[1 1 1]});
+                                cControl.mDrawContour(ax, cCompute.mGetBoundaryImageCoord(iB.Mask), {[1 0 0]}, 'drawMode', {'dot'});
+                                cControl.mDrawContour(ax, cCompute.mGetBoundaryImageCoord(vB.Mask), {[0 1 0]}, 'drawMode', {'dot'});
+                            end
+                            pause
+                        end
+                    end
+                    try
+                        oBound.coord = {oB.coord};
+                    end
+                    try
+                        iBound = iBound(1);
+                        iBound.coord = {iB.coord};
+                    end
+                    try
+                        vBound.coord = {vB.coord};
+                    end
                 case 'OuterBound_RS'
                     imgIn = oComp.mGetImgOfType('InPhase');
                     imgOut = oComp.mGetImgOfType('OutPhase');
                     oBound.coord = {RSouterBound(imgIn, 'MRT_OutPhase', segProps.magThreshold)};
+                case 'OuterBound_RS+InnerBound_RS'
+                    imgIn = oComp.mGetImgOfType('InPhase');
+                    imgOut = oComp.mGetImgOfType('OutPhase');
+                    segProps.bwThreshold = 2.3;
+                    segProps.erodeLvl = 2;
+                    oBound.coord = {RSouterBound(imgIn, 'MRT_OutPhase', segProps.magThreshold)};
+                    iBound.coord = {RSinnerBound(imgOut, 'MRT_OutPhase', oBound.coord, segProps.bwThreshold)};
+                    %vBound.coord = {RSvisceralBound(imgOut, 'MRT_OutPhase', iBound.coord, segProps.erodeLvl)};
                 case 'OuterBound_RS+NikitaFat'
                     imgIn = oComp.mGetImgOfType('InPhase');
                     imgOut = oComp.mGetImgOfType('OutPhase');
@@ -1415,6 +1668,18 @@ classdef cComputeFatSegment<cCompute
                 Ind = oCont.pTable.row;
             end
             oComp(Ind) = oComp(Ind).mAutoSegment(oCont.pAcfg.segProps);
+            
+            if numel(oComp(Ind).oBoundaries)==3
+                if oComp(Ind).pFatThresh<1
+                    oComp(Ind) = oComp(Ind).mFindThreshLvl(oCont);
+                end
+            end
+            
+%             if oComp(Ind).pVarious.AutoSegment_quality>0.75
+%                 oComp(Ind) = oComp(Ind).mSet_pSliceDone;
+%             end
+            oComp(Ind) = oComp(Ind).mSet_pSliceDone;
+            
             %-------------------------------%
         end
         
@@ -1428,6 +1693,16 @@ classdef cComputeFatSegment<cCompute
                     t1 = tic;
                     oComp(i) = oComp(i).mAutoSegment(oCont.pAcfg.segProps);
                     
+                    if numel(oComp(i).oBoundaries)==3
+                        if oComp(i).pFatThresh<1
+                            oComp(i) = oComp(i).mFindThreshLvl(oCont);
+                        end
+                    end
+                    
+%                     if oComp(i).pVarious.AutoSegment_quality>0.75
+%                         oComp(i) = oComp(i).mSet_pSliceDone;
+%                     end
+                    oComp(i) = oComp(i).mSet_pSliceDone;
                     t2 = toc(t1);
                     time(i) = t2;
                     timeLeft = median(time)*(numel(oComp)-i);
@@ -1462,7 +1737,12 @@ classdef cComputeFatSegment<cCompute
         end
         
         function oComp = mFindThreshLvl(oComp, oCont)
-            oCompTmp = oComp(oCont.pTable.row);
+            if numel(oComp)==1
+                Ind = 1;
+            else
+                Ind = oCont.pTable.row;
+            end
+            oCompTmp = oComp(Ind);
             %-------------------------------%
             if ~oCompTmp.oBoundaries.getBoundInd('outerBound')==0 & ~oCompTmp.oBoundaries.getBoundInd('innerBound')==0
                 %AUTOMATISCH THRESHOLDERMITTLUNG
@@ -1486,13 +1766,15 @@ classdef cComputeFatSegment<cCompute
                 %                 imshow(imerode(satMask, strel('diamond',5)));
                 %                 histogram(satIntensities, 100);
                 
-                oCompTmp.pFatThresh = prctile(satIntensities, 0.5);
+                %oCompTmp.pFatThresh = prctile(satIntensities, 0.5);
+                oCompTmp.pFatThresh = median(satIntensities)*0.7;
+                
             else
                 uiwait(msgbox('SAT must be segmented for FatThreshold determination!'));
             end
             
-            oComp(oCont.pTable.row) = oCompTmp;
-            oCont.mTableCellSelect('Caller', 'mFindThreshLvl');
+            oComp(Ind) = oCompTmp;
+            %oCont.mTableCellSelect('Caller', 'mFindThreshLvl');
             
             %
             %             oCont.pAcfg.autoThresh = ~oCont.pAcfg.autoThresh;
@@ -1549,7 +1831,7 @@ classdef cComputeFatSegment<cCompute
         function VatFatPxl = mGetVatFatPxl(oComp)
             vbInd = oComp.oBoundaries.getBoundInd('visceralBound');
             VatImg = oComp.mWaterImg;
-            VatMask = ~logical(oComp.mGetBoundMask(VatImg.data, oComp.oBoundaries(vbInd).coord));
+            VatMask = ~logical(oComp.mGetBoundMask(VatImg.data, oComp.oBoundaries(vbInd).coord, 'fillHoles', true));
             %-------------------------------%
             VatImg.data(VatMask) = 0;   % only Vat pxls are not 0
             VatFatPxl = VatImg.data>oComp.pFatThresh;  % Vat is only pxlValues bigger than hist cursor
@@ -1631,9 +1913,26 @@ classdef cComputeFatSegment<cCompute
                 s.sliceNr(i) = i;
                 if isempty(oCompTmp.pUseSlice)
                         oCompTmp.pUseSlice = false;
-                    end
+                end
                 s.useSlice (i) = oCompTmp.pUseSlice;
+                
+                
             end
+            keepInd = [find(ismember(s.Loc2, 'FK')):find(ismember(s.Loc2, 'ZF'))];
+            if isempty(keepInd)
+                answer = questdlg('Could not find FK or ZF landmark', 'Landmark missing', 'Save marked slices', 'Abord', 'Abord')
+                switch answer
+                    case 'Abord'
+                        return
+                    case 'Save marked slices'
+                        keepInd = s.useSlice;
+                end
+            end
+                    
+            tmp = s.useSlice;
+            s.useSlice = zeros(size(tmp));
+            s.useSlice(keepInd) = tmp(keepInd);
+            
             % postprocessing
             s.Loc1(ismember(s.Loc1, 'none')) = {''};
             s.Loc2(ismember(s.Loc2, 'none')) = {''};

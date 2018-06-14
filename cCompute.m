@@ -14,16 +14,42 @@ classdef cCompute
         
     methods(Static)
         % % % Segmentation functions % % %
-        function boundMask = mGetBoundMask(imgData, coord)
+        function boundCoord = mGetBoundaryImageCoord(boundImg)
+            % all pxls of boundImg that are ones will be given back as
+            % coordinates
+%             [x y] = find(boundImg);
+%             boundCoord = [x y];
+            % oder:
+            boundCoord = bwboundaries(boundImg);
+            boundCoord = cellfun(@(x) x', boundCoord, 'un', false);
+            boundCoord = [boundCoord{:}]';
+        end
+        
+        function boundMask = mGetBoundMask(imgData, coord, varargin)
             % create binary mask from image and coordiatne values
             % imgData       - 2D array
             % coord         - 2xN array with x,y coordinates
+            if ~isempty(varargin)
+            switch varargin{1}
+                case 'fillHoles'
+                    fillHoles = varargin{2};
+                otherwise
+                    fillHoles = true;
+            end
+            else
+                fillHoles = true;
+            end
+            
             imgSize = size(imgData);
             mask = zeros(imgSize);
             try coord = coord{1}; end
             
             mask(sub2ind(imgSize, coord(:,1), coord(:,2))) = 1;
-            boundMask = imfill(mask,'holes');
+            if fillHoles
+                boundMask = imfill(mask,'holes');
+            else
+                boundMask = mask;
+            end
         end
         
     end
@@ -152,7 +178,6 @@ classdef cCompute
                 end
                 % go to updateFcn of class and there go back to update Fcn of superclass
                 oComp = oComp.(['mUpdate_' class(oComp)])(data, saveDate);
-                
                 %% update version infos
                 % update oCont.version struct for classes
                 oCont = oComp.mUpdate_cControlVersionInfo(oCont);
@@ -179,7 +204,19 @@ classdef cCompute
             end
         end
         
-        %% GUI
+        %% GUI Update and Interaction
+        function oCont =  mSliceSelected(oComp, oCont, old, new)
+            %right now used by mTableCellSelect, however could be used in cComputeApp methods as well when all oComp are
+            %available. Else the method must be changed to work for a single oComp object and giving the old oComp object as
+            %varargin
+            % logging for old slice
+            oComp(old) = oCont.oComp(old).mLogging(['oCont.mSliceSelected - deSelect ' num2str(old)]);
+            % logging for new slice
+            oComp(new) = oCont.oComp(new).mLogging(['oCont.mSliceSelected - select' num2str(new)]);
+            
+            oCont.oComp = oComp;
+        end
+        
         function oCont =  mImageUpdate(oComp, oCont)
             %t1 = tic;
             imgAxis = oCont.pHandles.imgAxis;
@@ -517,6 +554,15 @@ classdef cCompute
             oCont.oComp(oCont.pTable.row).oBoundaries = oBounds;
         end
         
+        function oCont = mContourTrackingONOFF(oComp, oCont)
+            oCont.pAcfg.contour.contourTracking.enable = ~oCont.pAcfg.contour.contourTracking.enable;
+            if oCont.pAcfg.contour.contourTracking.enable == 0
+                uiwait(msgbox('Contour Tracking is now disabled'));
+            elseif oCont.pAcfg.contour.contourTracking.enable == 1
+                uiwait(msgbox('Contour Tracking is now enabled'));
+            end
+        end
+        
         %% Image Management
         function oImg = mGetImgOfType(oComp, type)
             typeInd =  find(ismember({oComp.oImgs.imgType}, type));
@@ -552,7 +598,8 @@ classdef cCompute
             data = arrayfun(@struct ,oComp); % release from class definition (think about verion flexibility)
             saveDate = datetime('now');
             versions = oCont.pVersions;
-            save(path, 'data', 'saveDate', 'versions');
+            oContLogging = oCont.pVarious.TimeLogging;
+            save(path, 'data', 'saveDate', 'versions', 'oContLogging');
         end
         
         %% Fitting and so
@@ -601,6 +648,16 @@ classdef cCompute
         end
         
         %% class methods
+        function oComp = mLogging(oComp, action, varargin)
+            if isfield(oComp.pVarious, 'TimeLogging')
+                oComp.pVarious.TimeLogging.Stamp(end+1) = now;
+                oComp.pVarious.TimeLogging.Action(end+1) = {action};
+            else
+                oComp.pVarious.TimeLogging.Stamp(1) = now;
+                oComp.pVarious.TimeLogging.Action(1) = {action};
+            end
+        end
+        
         function oComp = mUpdate_cCompute(oComp)
             oComp;
         end

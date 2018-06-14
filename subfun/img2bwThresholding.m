@@ -8,10 +8,10 @@ histFiltDiff = -diff(histFilt);
 
 %histDiffDat = movmean(histDiff, filtWidth);
 %histDiffDat = histDiffDat(filtWidth:end);
-minDist = max(max(img))/5
-thLvlAll = localMaximum(histFiltDiff, minDist, true)+1
+minDist = max(max(img))/5;
+thLvlAll = localMaximum(histFiltDiff, minDist, true)+1;
 thLvlAll = thLvlAll*magnitude;
-thLvl = thLvlAll(1) % just to be sure
+thLvl = thLvlAll(1); % just to be sure
 imgOut = img>thLvl;
 
 % %debug
